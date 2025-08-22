@@ -1,17 +1,20 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { HostList } from './components/HostList'
 import { RequestList } from './components/RequestList'
 import { RequestDetails } from './components/RequestDetails'
 import { StatsBar } from './components/StatsBar'
 import { Settings } from './components/Settings'
+import { PerformanceMetrics } from './components/PerformanceMetrics'
+import { KeyboardShortcuts } from './components/KeyboardShortcuts'
 import { useWebSocket } from './hooks/useWebSocket'
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { CapturedRequest, Host } from './types'
 import { api } from './lib/api'
 import { Input } from './components/ui/input'
-import { Tabs, TabsList, TabsTrigger } from './components/ui/tabs'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from './components/ui/tabs'
 import { Badge } from './components/ui/badge'
 import { ScrollArea } from './components/ui/scroll-area'
-import { Search, Activity } from 'lucide-react'
+import { Search, Activity, BarChart } from 'lucide-react'
 
 function App() {
   const [hosts, setHosts] = useState<Host[]>([])
@@ -20,11 +23,13 @@ function App() {
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null)
   const [filterText, setFilterText] = useState('')
   const [viewMode, setViewMode] = useState<'all' | 'http' | 'rpc'>('all')
+  const [activeTab, setActiveTab] = useState<'requests' | 'performance'>('requests')
   const [stats, setStats] = useState({
     totalRequests: 0,
     rpcCalls: 0,
     avgResponseTime: 0
   })
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   const { isConnected, sendMessage } = useWebSocket({
     onMessage: (data) => {
@@ -84,6 +89,57 @@ function App() {
     return true
   })
 
+  // Keyboard shortcuts handlers
+  const handleSearch = () => {
+    searchInputRef.current?.focus()
+  }
+
+  const handleClearFilters = () => {
+    setFilterText('')
+    setViewMode('all')
+  }
+
+  const handleRefresh = () => {
+    if (selectedHost) {
+      sendMessage({ type: 'get_requests', host: selectedHost })
+    } else {
+      api.getHosts()
+        .then((data: any) => {
+          const hostList = data.hosts.map((h: string) => ({ 
+            name: h, 
+            requestCount: 0,
+            rpcCount: 0 
+          }))
+          setHosts(hostList)
+        })
+    }
+  }
+
+  const handleSelectNext = () => {
+    if (filteredRequests.length === 0) return
+    const currentIndex = selectedRequest ? 
+      filteredRequests.findIndex(r => r.id === selectedRequest) : -1
+    const nextIndex = (currentIndex + 1) % filteredRequests.length
+    setSelectedRequest(filteredRequests[nextIndex].id)
+  }
+
+  const handleSelectPrevious = () => {
+    if (filteredRequests.length === 0) return
+    const currentIndex = selectedRequest ? 
+      filteredRequests.findIndex(r => r.id === selectedRequest) : 0
+    const prevIndex = currentIndex > 0 ? currentIndex - 1 : filteredRequests.length - 1
+    setSelectedRequest(filteredRequests[prevIndex].id)
+  }
+
+  // Initialize keyboard shortcuts
+  useKeyboardShortcuts({
+    onSearch: handleSearch,
+    onClearFilters: handleClearFilters,
+    onRefresh: handleRefresh,
+    onSelectNext: handleSelectNext,
+    onSelectPrevious: handleSelectPrevious
+  })
+
   useEffect(() => {
     // Fetch initial hosts on mount
     api.getHosts()
@@ -115,7 +171,10 @@ function App() {
               </Badge>
             )}
           </h2>
-          <Settings />
+          <div className="flex items-center gap-1">
+            <KeyboardShortcuts />
+            <Settings />
+          </div>
         </div>
         <div className="h-[calc(100vh-4rem)]">
           <HostList 
@@ -138,48 +197,83 @@ function App() {
 
         {/* Content area */}
         <div className="flex-1 flex">
-          {/* Request list */}
-          <div className="w-1/2 border-r flex flex-col">
-            <div className="p-4 border-b space-y-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  type="search"
-                  placeholder="Filter requests..."
-                  value={filterText}
-                  onChange={(e) => setFilterText(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              
-              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)}>
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="all">All</TabsTrigger>
-                  <TabsTrigger value="http">HTTP</TabsTrigger>
-                  <TabsTrigger value="rpc">RPC</TabsTrigger>
-                </TabsList>
-              </Tabs>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col">
+            <div className="border-b px-4">
+              <TabsList className="h-12">
+                <TabsTrigger value="requests" className="flex items-center gap-2">
+                  <Activity className="w-4 h-4" />
+                  Requests
+                </TabsTrigger>
+                <TabsTrigger value="performance" className="flex items-center gap-2">
+                  <BarChart className="w-4 h-4" />
+                  Performance
+                </TabsTrigger>
+              </TabsList>
             </div>
 
-            <ScrollArea className="flex-1">
-              <RequestList
-                requests={filteredRequests}
-                selectedRequest={selectedRequest}
-                onSelectRequest={setSelectedRequest}
-              />
-            </ScrollArea>
-          </div>
+            <TabsContent value="requests" className="flex-1 flex m-0">
+              {/* Request list */}
+              <div className="w-1/2 border-r flex flex-col">
+                <div className="p-4 border-b space-y-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                    <Input
+                      ref={searchInputRef}
+                      type="search"
+                      placeholder="Filter requests..."
+                      value={filterText}
+                      onChange={(e) => setFilterText(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                  
+                  <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)}>
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="all">All</TabsTrigger>
+                      <TabsTrigger value="http">HTTP</TabsTrigger>
+                      <TabsTrigger value="rpc">RPC</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
 
-          {/* Request details */}
-          <div className="w-1/2">
-            {selectedRequest ? (
-              <RequestDetails requestId={selectedRequest} />
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                Select a request to view details
+                <ScrollArea className="flex-1">
+                  <RequestList
+                    requests={filteredRequests}
+                    selectedRequest={selectedRequest}
+                    onSelectRequest={setSelectedRequest}
+                  />
+                </ScrollArea>
               </div>
-            )}
-          </div>
+
+              {/* Request details */}
+              <div className="w-1/2">
+                {selectedRequest ? (
+                  <RequestDetails requestId={selectedRequest} />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    Select a request to view details
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="performance" className="flex-1 p-6 m-0 overflow-auto">
+              <div className="max-w-7xl mx-auto">
+                <h2 className="text-2xl font-bold mb-6">Performance Analytics</h2>
+                {requests.length > 0 ? (
+                  <PerformanceMetrics requests={requests} />
+                ) : (
+                  <div className="flex items-center justify-center h-64 text-muted-foreground">
+                    <div className="text-center">
+                      <BarChart className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>No request data available</p>
+                      <p className="text-sm mt-2">Select a host to view performance metrics</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { ScrollArea } from './ui/scroll-area'
-import { Copy, RefreshCw } from 'lucide-react'
+import { Copy, RefreshCw, Terminal, Download, Clock, Database } from 'lucide-react'
 import { format } from 'date-fns'
 
 interface RequestDetailsProps {
@@ -17,6 +17,7 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
   const [loading, setLoading] = useState(true)
   const [request, setRequest] = useState<CapturedRequest | null>(null)
   const [response, setResponse] = useState<CapturedResponse | null>(null)
+  const [imageError, setImageError] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -36,9 +37,157 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
     navigator.clipboard.writeText(text)
   }
 
+  const copyAsCurl = () => {
+    if (!request) return
+    
+    let curlCommand = `curl -X ${request.method} '${request.url}'`
+    
+    // Add headers
+    if (request.headers) {
+      Object.entries(request.headers).forEach(([key, value]) => {
+        if (key.toLowerCase() !== 'host' && key.toLowerCase() !== 'content-length') {
+          curlCommand += ` \\\n  -H '${key}: ${value}'`
+        }
+      })
+    }
+    
+    // Add body if present
+    if (request.body && ['POST', 'PUT', 'PATCH'].includes(request.method)) {
+      const bodyStr = typeof request.body === 'string' ? request.body : JSON.stringify(request.body)
+      curlCommand += ` \\\n  --data '${bodyStr.replace(/'/g, "'\\''")}'`
+    }
+    
+    navigator.clipboard.writeText(curlCommand)
+  }
+
   const replayRequest = async () => {
     // TODO: Implement replay functionality
     console.log('Replay request:', requestId)
+  }
+  
+  const exportRequest = () => {
+    if (!request) return
+    
+    const exportData = {
+      request,
+      response,
+      timestamp: new Date().toISOString()
+    }
+    
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `request-${request.id}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const renderResponseBody = (resp: CapturedResponse) => {
+    if (!resp.body_decoded) return null
+    
+    const contentType = resp.headers?.['content-type']?.toLowerCase() || ''
+    
+    // Handle images
+    if (contentType.includes('image/')) {
+      const imageType = contentType.split('/')[1]?.split(';')[0]
+      
+      // For base64 encoded images in the response body
+      if (resp.body_decoded.startsWith('data:image')) {
+        return (
+          <div className="border rounded p-2 bg-muted/30">
+            <img 
+              src={resp.body_decoded} 
+              alt="Response" 
+              className="max-w-full h-auto rounded"
+              onError={() => setImageError(true)}
+            />
+          </div>
+        )
+      }
+      
+      // Try to create a data URL from the body
+      try {
+        const dataUrl = `data:${contentType};base64,${btoa(resp.body_decoded)}`
+        return (
+          <div className="border rounded p-2 bg-muted/30">
+            <img 
+              src={dataUrl} 
+              alt="Response" 
+              className="max-w-full h-auto rounded"
+              onError={() => setImageError(true)}
+            />
+          </div>
+        )
+      } catch (e) {
+        // Fall back to showing raw data
+      }
+    }
+    
+    // Handle JSON
+    if (contentType.includes('application/json') || contentType.includes('text/json')) {
+      try {
+        const jsonData = JSON.parse(resp.body_decoded)
+        return (
+          <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">
+            {JSON.stringify(jsonData, null, 2)}
+          </pre>
+        )
+      } catch (e) {
+        // Not valid JSON, show as text
+      }
+    }
+    
+    // Handle HTML
+    if (contentType.includes('text/html')) {
+      return (
+        <div className="space-y-2">
+          <div className="border rounded p-2 bg-muted/30 max-h-96 overflow-auto">
+            <div dangerouslySetInnerHTML={{ __html: resp.body_decoded }} />
+          </div>
+          <details className="cursor-pointer">
+            <summary className="text-xs text-muted-foreground">View Source</summary>
+            <pre className="text-xs bg-muted p-2 rounded overflow-x-auto mt-2">
+              {resp.body_decoded}
+            </pre>
+          </details>
+        </div>
+      )
+    }
+    
+    // Handle XML
+    if (contentType.includes('text/xml') || contentType.includes('application/xml')) {
+      return (
+        <pre className="text-xs bg-muted p-2 rounded overflow-x-auto language-xml">
+          {resp.body_decoded}
+        </pre>
+      )
+    }
+    
+    // Handle CSS
+    if (contentType.includes('text/css')) {
+      return (
+        <pre className="text-xs bg-muted p-2 rounded overflow-x-auto language-css">
+          {resp.body_decoded}
+        </pre>
+      )
+    }
+    
+    // Handle JavaScript
+    if (contentType.includes('application/javascript') || contentType.includes('text/javascript')) {
+      return (
+        <pre className="text-xs bg-muted p-2 rounded overflow-x-auto language-javascript">
+          {resp.body_decoded}
+        </pre>
+      )
+    }
+    
+    // Default: show as plain text
+    return (
+      <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">
+        {resp.body_decoded}
+      </pre>
+    )
   }
 
   if (loading) {
@@ -66,19 +215,40 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
             <Badge variant="outline">{request.method}</Badge>
             <span className="font-mono text-sm">{request.path}</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={copyAsCurl}
+              title="Copy as cURL command"
+            >
+              <Terminal className="w-4 h-4 mr-1" />
+              cURL
+            </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => copyToClipboard(request.id)}
+              title="Copy request ID"
             >
               <Copy className="w-4 h-4 mr-1" />
-              Copy ID
+              ID
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportRequest}
+              title="Export request/response as JSON"
+            >
+              <Download className="w-4 h-4 mr-1" />
+              Export
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={replayRequest}
+              disabled
+              title="Replay request (coming soon)"
             >
               <RefreshCw className="w-4 h-4 mr-1" />
               Replay
@@ -127,6 +297,12 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
                 {request.body_decoded && (
                   <div>
                     <h4 className="text-sm font-medium mb-2">Request Body</h4>
+                    <div className="mb-2">
+                      <Badge variant="secondary" className="text-xs">
+                        <Database className="w-3 h-3 mr-1" />
+                        {new Blob([request.body_decoded]).size} bytes
+                      </Badge>
+                    </div>
                     <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">
                       {request.body_decoded}
                     </pre>
@@ -182,9 +358,18 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
                     {response.body_decoded && (
                       <div>
                         <h4 className="text-sm font-medium mb-2">Response Body</h4>
-                        <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">
-                          {response.body_decoded}
-                        </pre>
+                        <div className="mb-2 flex items-center gap-2">
+                          <Badge variant="secondary" className="text-xs">
+                            <Database className="w-3 h-3 mr-1" />
+                            {new Blob([response.body_decoded]).size} bytes
+                          </Badge>
+                          {response.headers && response.headers['content-type'] && (
+                            <Badge variant="outline" className="text-xs">
+                              {response.headers['content-type'].split(';')[0]}
+                            </Badge>
+                          )}
+                        </div>
+                        {renderResponseBody(response)}
                       </div>
                     )}
 
