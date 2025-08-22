@@ -241,6 +241,22 @@ class StorageBackend:
     def _row_to_response(self, row) -> CapturedResponse:
         # Convert Row to dict for consistency
         row_dict = dict(row)
+        
+        # Fallback: decode body if body_decoded is empty but body exists
+        body_decoded = row_dict["body_decoded"]
+        if not body_decoded and row_dict["body"]:
+            try:
+                # Try to decode as UTF-8 text
+                body_decoded = row_dict["body"].decode("utf-8") if isinstance(row_dict["body"], bytes) else row_dict["body"]
+                # If it looks like JSON, try to pretty-print it
+                if body_decoded and body_decoded.strip().startswith(("{", "[")):
+                    try:
+                        body_decoded = json.dumps(json.loads(body_decoded), indent=2)
+                    except:
+                        pass  # Keep as plain text
+            except:
+                body_decoded = None
+        
         return CapturedResponse(
             id=row_dict["id"],
             request_id=row_dict["request_id"],
@@ -248,7 +264,7 @@ class StorageBackend:
             status_code=row_dict["status_code"],
             headers=json.loads(row_dict["headers"]),
             body=row_dict["body"],
-            body_decoded=row_dict["body_decoded"],
+            body_decoded=body_decoded,
             content_type=row_dict["content_type"],
             response_time_ms=row_dict["response_time_ms"]
         )

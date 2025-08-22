@@ -16,10 +16,8 @@ import { Input } from './components/ui/input'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './components/ui/tabs'
 import { Badge } from './components/ui/badge'
 import { ScrollArea } from './components/ui/scroll-area'
-import { Search, Activity, BarChart, Clock, Filter, Globe } from 'lucide-react'
+import { Search, Activity, BarChart, Clock } from 'lucide-react'
 import { Toaster } from './components/ui/sonner'
-import { Button } from './components/ui/button'
-import { cn } from './lib/utils'
 
 function App() {
   const [hosts, setHosts] = useState<Host[]>([])
@@ -29,7 +27,6 @@ function App() {
   const [filterText, setFilterText] = useState('')
   const [viewMode, setViewMode] = useState<'all' | 'http' | 'rpc'>('all')
   const [activeTab, setActiveTab] = useState<'requests' | 'performance' | 'timeline'>('requests')
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [stats, setStats] = useState({
     totalRequests: 0,
     rpcCalls: 0,
@@ -166,156 +163,111 @@ function App() {
     <>
       <Toaster position="bottom-right" />
       <div className="flex h-screen bg-background">
-        
-        {/* Sidebar with hosts */}
-        <div className={cn(
-          "border-r bg-card transition-all duration-200",
-          sidebarCollapsed ? "w-16" : "w-64"
-        )}>
-          <div className="h-full flex flex-col">
-            {/* Sidebar header */}
-            <div className="px-3 py-2 border-b flex items-center justify-between h-12">
-              {!sidebarCollapsed && (
-                <h2 className="text-sm font-semibold flex items-center gap-2">
-                  <Globe className="w-4 h-4" />
-                  Hosts
-                  {isConnected && (
-                    <Badge variant="outline" className="text-xs px-1 py-0">
-                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1 animate-pulse" />
-                      Live
-                    </Badge>
-                  )}
-                </h2>
-              )}
-              <div className="flex items-center gap-1">
-                {!sidebarCollapsed && <KeyboardShortcuts />}
-                {!sidebarCollapsed && <Settings />}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                >
-                  <Activity className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            
-            {/* Hosts list */}
-            <div className="flex-1 overflow-hidden">
-              {!sidebarCollapsed && (
-                <HostList 
-                  hosts={hosts} 
-                  selectedHost={selectedHost} 
-                  onSelectHost={selectHost} 
-                />
-              )}
-            </div>
+      {/* Sidebar with hosts */}
+      <div className="w-64 flex-shrink-0 border-r bg-sidebar">
+        <div className="px-4 py-3 border-b flex items-center justify-between">
+          <h2 className="text-sm font-semibold flex items-center gap-2">
+            <Activity className="w-4 h-4" />
+            Captured Hosts
+            {isConnected && (
+              <Badge variant="outline" className="ml-2">
+                <span className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse" />
+                Live
+              </Badge>
+            )}
+          </h2>
+          <div className="flex items-center gap-1">
+            <KeyboardShortcuts />
+            <Settings />
           </div>
         </div>
+        <div className="h-[calc(100vh-3.25rem)]">
+          <HostList 
+            hosts={hosts} 
+            selectedHost={selectedHost} 
+            onSelectHost={selectHost} 
+          />
+        </div>
+      </div>
 
-        {/* Main content area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Top stats bar */}
-          {selectedHost && (
-            <div className="border-b bg-card/50">
-              <StatsBar 
-                selectedHost={selectedHost}
-                totalRequests={stats.totalRequests}
-                rpcCalls={stats.rpcCalls}
-                avgResponseTime={stats.avgResponseTime}
-              />
-            </div>
-          )}
+      {/* Main content */}
+      <div className="flex-1 flex flex-col">
 
-          {/* Main tabs */}
+        {/* Content area */}
+        <div className="flex-1 flex">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col">
-            <div className="border-b px-4 bg-card/30">
-              <TabsList className="h-10">
-                <TabsTrigger value="requests" className="text-xs">
-                  <Activity className="w-3 h-3 mr-1" />
+            <div className="border-b px-4">
+              <TabsList className="h-12">
+                <TabsTrigger value="requests" className="flex items-center gap-2">
+                  <Activity className="w-4 h-4" />
                   Requests
                 </TabsTrigger>
-                <TabsTrigger value="timeline" className="text-xs">
-                  <Clock className="w-3 h-3 mr-1" />
+                <TabsTrigger value="timeline" className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
                   Timeline
                 </TabsTrigger>
-                <TabsTrigger value="performance" className="text-xs">
-                  <BarChart className="w-3 h-3 mr-1" />
+                <TabsTrigger value="performance" className="flex items-center gap-2">
+                  <BarChart className="w-4 h-4" />
                   Analytics
                 </TabsTrigger>
               </TabsList>
             </div>
 
-            {/* Requests tab */}
             <TabsContent value="requests" className="flex-1 flex m-0">
-              <div className="flex w-full h-full">
-                {/* Request list panel */}
-                <div className="w-[450px] border-r flex flex-col bg-muted/5">
-                  {/* Filters */}
-                  <div className="p-3 border-b space-y-2 bg-card/50">
-                    <div className="flex items-center gap-2">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-muted-foreground w-3.5 h-3.5" />
-                        <Input
-                          ref={searchInputRef}
-                          type="search"
-                          placeholder="Filter requests..."
-                          value={filterText}
-                          onChange={(e) => setFilterText(e.target.value)}
-                          className="pl-8 h-8 text-xs"
-                        />
-                      </div>
-                      <HarExport 
-                        requests={filteredRequests}
-                        onImport={(imported) => setRequests(prev => [...imported, ...prev])}
+              {/* Request list */}
+              <div className="w-1/2 border-r flex flex-col">
+                <div className="p-4 border-b space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                      <Input
+                        ref={searchInputRef}
+                        type="search"
+                        placeholder="Filter requests..."
+                        value={filterText}
+                        onChange={(e) => setFilterText(e.target.value)}
+                        className="pl-9"
                       />
                     </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Filter className="w-3 h-3 text-muted-foreground" />
-                      <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="flex-1">
-                        <TabsList className="grid w-full grid-cols-3 h-7">
-                          <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-                          <TabsTrigger value="http" className="text-xs">HTTP</TabsTrigger>
-                          <TabsTrigger value="rpc" className="text-xs">RPC</TabsTrigger>
-                        </TabsList>
-                      </Tabs>
-                    </div>
-                  </div>
-
-                  {/* Request list */}
-                  <ScrollArea className="flex-1">
-                    <RequestList
+                    <HarExport 
                       requests={filteredRequests}
-                      selectedRequest={selectedRequest}
-                      onSelectRequest={setSelectedRequest}
+                      onImport={(imported) => setRequests(prev => [...imported, ...prev])}
                     />
-                  </ScrollArea>
+                  </div>
+                  
+                  <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)}>
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="all">All</TabsTrigger>
+                      <TabsTrigger value="http">HTTP</TabsTrigger>
+                      <TabsTrigger value="rpc">RPC</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
                 </div>
 
-                {/* Request details panel */}
-                <div className="flex-1 overflow-hidden">
-                  {selectedRequest ? (
-                    <RequestDetails requestId={selectedRequest} />
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-muted-foreground">
-                      <div className="text-center space-y-3">
-                        <Activity className="w-12 h-12 mx-auto opacity-20" />
-                        <div>
-                          <p className="font-medium">No request selected</p>
-                          <p className="text-xs mt-1">Select a request from the list to view details</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <ScrollArea className="flex-1">
+                  <RequestList
+                    requests={filteredRequests}
+                    selectedRequest={selectedRequest}
+                    onSelectRequest={setSelectedRequest}
+                  />
+                </ScrollArea>
+              </div>
+
+              {/* Request details */}
+              <div className="w-1/2">
+                {selectedRequest ? (
+                  <RequestDetails requestId={selectedRequest} />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    Select a request to view details
+                  </div>
+                )}
               </div>
             </TabsContent>
 
-            {/* Timeline tab */}
-            <TabsContent value="timeline" className="flex-1 p-4 m-0 overflow-auto">
-              <div className="max-w-6xl mx-auto">
+            <TabsContent value="timeline" className="flex-1 p-6 m-0 overflow-auto">
+              <div className="max-w-7xl mx-auto">
+                <h2 className="text-2xl font-bold mb-6">Request Timeline</h2>
                 <TimelineView 
                   requests={filteredRequests}
                   onSelectRequest={setSelectedRequest}
@@ -324,17 +276,17 @@ function App() {
               </div>
             </TabsContent>
 
-            {/* Performance tab */}
-            <TabsContent value="performance" className="flex-1 p-4 m-0 overflow-auto">
-              <div className="max-w-6xl mx-auto">
+            <TabsContent value="performance" className="flex-1 p-6 m-0 overflow-auto">
+              <div className="max-w-7xl mx-auto">
+                <h2 className="text-2xl font-bold mb-6">Performance Analytics</h2>
                 {requests.length > 0 ? (
                   <PerformanceMetrics requests={requests} />
                 ) : (
                   <div className="flex items-center justify-center h-64 text-muted-foreground">
                     <div className="text-center">
-                      <BarChart className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                      <p className="font-medium">No data available</p>
-                      <p className="text-xs mt-1">Select a host to view performance metrics</p>
+                      <BarChart className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>No request data available</p>
+                      <p className="text-sm mt-2">Select a host to view performance metrics</p>
                     </div>
                   </div>
                 )}
@@ -343,6 +295,7 @@ function App() {
           </Tabs>
         </div>
       </div>
+    </div>
     </>
   )
 }

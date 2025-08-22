@@ -287,16 +287,25 @@ class IntelligentCaptureAddon:
             return None
             
         try:
-            if content_type in [ContentType.JSON, ContentType.JAVASCRIPT]:
-                return json.dumps(json.loads(body.decode("utf-8")), indent=2)
-            elif content_type in [ContentType.HTML, ContentType.XML, ContentType.TEXT, ContentType.CSS]:
-                return body.decode("utf-8")
-            elif content_type == ContentType.FORM:
-                return str(parse_qs(body.decode("utf-8")))
-            else:
-                return None
-        except (json.JSONDecodeError, UnicodeDecodeError) as e:
-            # Try plain text decode as fallback
+            # First try to decode as UTF-8
+            decoded = body.decode("utf-8")
+            
+            # If it looks like JSON, try to pretty-print it
+            if decoded.strip().startswith(("{", "[")) or content_type in [ContentType.JSON, ContentType.JAVASCRIPT]:
+                try:
+                    return json.dumps(json.loads(decoded), indent=2)
+                except json.JSONDecodeError:
+                    pass  # Not valid JSON, continue with plain text
+            
+            # Handle specific content types
+            if content_type == ContentType.FORM:
+                return str(parse_qs(decoded))
+            
+            # Return decoded text for all text-based content types and unknowns
+            return decoded
+            
+        except UnicodeDecodeError:
+            # Try with error replacement for non-UTF-8 content
             try:
                 return body.decode("utf-8", errors="replace")
             except Exception as decode_error:
