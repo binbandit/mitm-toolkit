@@ -66,8 +66,42 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
   }
 
   const replayRequest = async () => {
-    // TODO: Implement replay functionality
-    console.log('Replay request:', requestId)
+    if (!request) return
+    
+    try {
+      // Create a fetch request that mimics the original
+      const options: RequestInit = {
+        method: request.method,
+        headers: request.headers || {},
+      }
+      
+      // Add body for methods that support it
+      if (request.body_decoded && ['POST', 'PUT', 'PATCH'].includes(request.method)) {
+        options.body = request.body_decoded
+      }
+      
+      // Note: This will be blocked by CORS in most cases
+      // In production, this should go through a backend proxy
+      toast.info('Replaying request...', {
+        description: 'Note: Request may be blocked by CORS policy'
+      })
+      
+      const response = await fetch(request.url, options)
+      
+      if (response.ok) {
+        toast.success('Request replayed successfully', {
+          description: `Status: ${response.status}`
+        })
+      } else {
+        toast.error('Request replay failed', {
+          description: `Status: ${response.status}`
+        })
+      }
+    } catch (error) {
+      toast.error('Request replay failed', {
+        description: error instanceof Error ? error.message : 'Unknown error'
+      })
+    }
   }
   
   const exportRequest = () => {
@@ -207,6 +241,7 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
               size="sm"
               onClick={copyAsCurl}
               title="Copy as cURL command"
+              className="cursor-pointer"
             >
               <Terminal className="w-4 h-4 mr-1" />
               cURL
@@ -216,6 +251,7 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
               size="sm"
               onClick={() => copyToClipboard(request.id, 'Request ID copied')}
               title="Copy request ID"
+              className="cursor-pointer"
             >
               <Copy className="w-4 h-4 mr-1" />
               ID
@@ -225,6 +261,7 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
               size="sm"
               onClick={exportRequest}
               title="Export request/response as JSON"
+              className="cursor-pointer"
             >
               <Download className="w-4 h-4 mr-1" />
               Export
@@ -233,8 +270,8 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
               variant="outline"
               size="sm"
               onClick={replayRequest}
-              disabled
-              title="Replay request (coming soon)"
+              title="Replay request"
+              className="cursor-pointer"
             >
               <RefreshCw className="w-4 h-4 mr-1" />
               Replay

@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
+import { RadioGroup, RadioGroupItem } from './ui/radio-group'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import {
   Dialog,
   DialogContent,
@@ -22,7 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from './ui/alert-dialog'
-import { Settings as SettingsIcon, Trash2 } from 'lucide-react'
+import { Settings as SettingsIcon, Trash2, Sun, Moon, Palette } from 'lucide-react'
 import { api } from '../lib/api'
 
 export function Settings() {
@@ -30,9 +32,22 @@ export function Settings() {
     localStorage.getItem('MITM_BACKEND_URL') || 'http://localhost:8000'
   )
   const [isClearing, setIsClearing] = useState(false)
+  const [theme, setTheme] = useState<'light' | 'dark'>(
+    (localStorage.getItem('theme') as 'light' | 'dark') || 'dark'
+  )
+  const [codeTheme, setCodeTheme] = useState(
+    localStorage.getItem('codeTheme') || 'tomorrow'
+  )
 
   const handleSave = () => {
     localStorage.setItem('MITM_BACKEND_URL', backendUrl)
+    localStorage.setItem('theme', theme)
+    localStorage.setItem('codeTheme', codeTheme)
+    
+    // Apply theme immediately
+    document.documentElement.classList.remove('light', 'dark')
+    document.documentElement.classList.add(theme)
+    
     // Reload to apply new settings
     window.location.reload()
   }
@@ -97,6 +112,54 @@ export function Settings() {
           <div className="text-sm text-muted-foreground">
             <p>The URL where your MITM Toolkit backend is running.</p>
             <p className="mt-2">Default: http://localhost:8000</p>
+          </div>
+          
+          <div className="border-t pt-4">
+            <h4 className="text-sm font-medium mb-3">Appearance</h4>
+            <div className="space-y-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Theme</Label>
+                <RadioGroup
+                  value={theme}
+                  onValueChange={(v) => setTheme(v as 'light' | 'dark')}
+                  className="col-span-3 flex gap-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="light" id="light" />
+                    <Label htmlFor="light" className="flex items-center gap-1 cursor-pointer">
+                      <Sun className="w-4 h-4" />
+                      Light
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="dark" id="dark" />
+                    <Label htmlFor="dark" className="flex items-center gap-1 cursor-pointer">
+                      <Moon className="w-4 h-4" />
+                      Dark
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="code-theme" className="text-right">
+                  Code Theme
+                </Label>
+                <Select value={codeTheme} onValueChange={setCodeTheme}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tomorrow">Tomorrow Night</SelectItem>
+                    <SelectItem value="dracula">Dracula</SelectItem>
+                    <SelectItem value="github">GitHub Light</SelectItem>
+                    <SelectItem value="monokai">Monokai</SelectItem>
+                    <SelectItem value="nord">Nord</SelectItem>
+                    <SelectItem value="one-dark">One Dark</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
           
           <div className="border-t pt-4">
