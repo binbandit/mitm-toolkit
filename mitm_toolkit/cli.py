@@ -89,6 +89,7 @@ def capture(port, filter_hosts, ignore_hosts, filter_patterns, ignore_patterns, 
 def list_hosts():
     """List all captured hosts."""
     storage = StorageBackend()
+    console.print(f"[dim]Using database: {storage.db_path}[/dim]")
     hosts = storage.get_all_hosts()
     
     if not hosts:
@@ -254,6 +255,7 @@ def dashboard(port, local, no_browser):
     from .dashboard import DashboardServer
     
     storage = StorageBackend()
+    console.print(f"[dim]Using database: {storage.db_path}[/dim]")
     server = DashboardServer(storage, port=port)
     
     # Determine which dashboard to use

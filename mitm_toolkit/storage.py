@@ -12,8 +12,13 @@ from .models import CapturedRequest, CapturedResponse, ServiceProfile
 
 
 class StorageBackend:
-    def __init__(self, db_path: str = "captures.db"):
-        # Use absolute path to ensure consistency
+    def __init__(self, db_path: str = None):
+        # Use a consistent location for the database
+        if db_path is None:
+            # Default to user's home directory for consistency
+            db_path = Path.home() / ".mitm_toolkit" / "captures.db"
+            db_path.parent.mkdir(parents=True, exist_ok=True)
+        
         if not Path(db_path).is_absolute():
             self.db_path = Path.cwd() / db_path
         else:
