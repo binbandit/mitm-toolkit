@@ -9,11 +9,34 @@ A powerful, AI-enhanced toolkit for capturing, analyzing, and mocking HTTP/HTTPS
 **Try the dashboard without installing Node.js!**  
 Visit: **https://binbandit.github.io/mitm-toolkit/**
 
-The hosted dashboard can connect to your locally running MITM Toolkit instance:
-1. Start local capture: `mitm-toolkit capture`
-2. Run dashboard server: `mitm-toolkit dashboard`
-3. Visit the GitHub Pages dashboard
-4. It automatically connects to `localhost:8000`
+### Privacy & Security
+
+🔒 **Your data stays local and private:**
+- The GitHub Pages dashboard is a **static site** - no server-side code
+- **Zero data collection** - we don't store, log, or transmit your data anywhere
+- All connections are made directly from your browser to your local MITM Toolkit instance
+- The dashboard code is fully open source: [View the source](./mitm_toolkit/dashboard-ui)
+- Safe for testing with sensitive data - everything stays on your machine
+
+### Usage
+
+The dashboard command now defaults to using the GitHub Pages hosted dashboard:
+```bash
+# Start capture
+mitm-toolkit capture
+
+# Launch dashboard (opens GitHub Pages automatically)
+mitm-toolkit dashboard
+
+# Or use local dashboard if you have it built
+mitm-toolkit dashboard --local
+
+# Specify custom port for backend
+mitm-toolkit dashboard --port 9000
+```
+
+The hosted dashboard automatically connects to your local backend at `localhost:8000`.
+Configure a custom backend URL in the dashboard settings if needed.
 
 ## Table of Contents
 

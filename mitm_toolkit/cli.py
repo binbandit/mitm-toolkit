@@ -225,31 +225,60 @@ def show_requests(host, path):
 
 
 @main.command()
-@click.option("--port", "-p", default=8000, help="Dashboard port")
-@click.option("--dev", is_flag=True, help="Start in development mode (requires building first)")
-def dashboard(port, dev):
-    """Launch web dashboard for viewing captured requests."""
+@click.option("--port", "-p", default=8000, help="Dashboard backend port")
+@click.option("--local", is_flag=True, help="Use local dashboard instead of GitHub Pages")
+@click.option("--no-browser", is_flag=True, help="Don't open browser automatically")
+def dashboard(port, local, no_browser):
+    """Launch web dashboard for viewing captured requests.
+    
+    By default, opens the GitHub Pages hosted dashboard (no build required).
+    Use --local to use the locally built dashboard instead.
+    """
+    import webbrowser
     from .dashboard import DashboardServer
+    
     storage = StorageBackend()
     server = DashboardServer(storage, port=port)
     
-    # Check if React dashboard is built
-    if not server.check_dashboard_built():
-        console.print("[yellow]⚠️  React dashboard not built yet![/yellow]")
-        console.print("\n[bold]To build the dashboard:[/bold]")
-        console.print("  cd mitm_toolkit/dashboard-ui")
-        console.print("  pnpm install")
-        console.print("  pnpm build")
-        console.print("\n[bold]For development mode with hot reload:[/bold]")
-        console.print("  cd mitm_toolkit/dashboard-ui")
-        console.print("  pnpm dev")
-        console.print("  # Then access at http://localhost:3000")
-        console.print("\n[dim]Starting with fallback UI...[/dim]\n")
+    # Determine which dashboard to use
+    if local:
+        # Check if local React dashboard is built
+        if not server.check_dashboard_built():
+            console.print("[yellow]⚠️  Local React dashboard not built yet![/yellow]")
+            console.print("\n[bold]To build the dashboard:[/bold]")
+            console.print("  cd mitm_toolkit/dashboard-ui")
+            console.print("  pnpm install")
+            console.print("  pnpm build")
+            console.print("\n[bold]For development mode with hot reload:[/bold]")
+            console.print("  cd mitm_toolkit/dashboard-ui")
+            console.print("  pnpm dev")
+            console.print("  # Then access at http://localhost:3000")
+            console.print("\n[dim]Starting with fallback UI...[/dim]\n")
+        
+        dashboard_url = f"http://localhost:{port}"
+        console.print(f"[green]Starting local dashboard backend on {dashboard_url}[/green]")
+        
+        if server.check_dashboard_built():
+            console.print("[green]✓ Using local React dashboard[/green]")
+    else:
+        # Use GitHub Pages hosted dashboard
+        dashboard_url = "https://binbandit.github.io/mitm-toolkit/"
+        console.print(f"[green]Starting dashboard backend on http://localhost:{port}[/green]")
+        console.print(f"[cyan]Opening GitHub Pages dashboard: {dashboard_url}[/cyan]")
+        console.print("\n[yellow]Note: Make sure to configure the backend URL in the dashboard settings if needed.[/yellow]")
+        console.print(f"[dim]Backend API available at: http://localhost:{port}[/dim]")
     
-    console.print(f"[green]Starting web dashboard on http://localhost:{port}[/green]")
-    
-    if server.check_dashboard_built():
-        console.print("[green]✓ Using React dashboard[/green]")
+    # Open browser if not disabled
+    if not no_browser:
+        import threading
+        import time
+        def open_browser():
+            time.sleep(1.5)  # Give server time to start
+            webbrowser.open(dashboard_url)
+        
+        browser_thread = threading.Thread(target=open_browser)
+        browser_thread.daemon = True
+        browser_thread.start()
     
     console.print("[yellow]Press Ctrl+C to stop[/yellow]")
     
