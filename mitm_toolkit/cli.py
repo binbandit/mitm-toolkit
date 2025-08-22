@@ -250,14 +250,39 @@ def replay(request_id, target_host, modify):
     import json
     
     storage = StorageBackend()
-    replayer = RequestReplay(storage)
     
-    # This would need a method to get request by ID
-    console.print("[yellow]Replay feature requires request lookup by ID implementation[/yellow]")
+    # Get the request
+    request = storage.get_request_by_id(request_id)
+    if not request:
+        console.print(f"[red]Request with ID {request_id} not found[/red]")
+        return
+    
+    console.print(f"[green]Replaying request:[/green] {request.method.value} {request.url}")
     
     async def do_replay():
-        # Implementation would go here
-        pass
+        replayer = RequestReplay(storage)
+        
+        modifications = None
+        if modify:
+            try:
+                modifications = json.loads(modify)
+            except json.JSONDecodeError:
+                console.print("[red]Invalid JSON in --modify parameter[/red]")
+                return
+        
+        try:
+            response = await replayer.replay_request(request, modifications, target_host)
+            
+            console.print(f"[green]Response:[/green] {response.status_code}")
+            if response.body_decoded:
+                console.print("[yellow]Response Body:[/yellow]")
+                console.print(response.body_decoded)
+            
+            console.print(f"[cyan]Response Time:[/cyan] {response.response_time_ms:.2f}ms")
+        except Exception as e:
+            console.print(f"[red]Replay failed: {e}[/red]")
+        finally:
+            await replayer.close()
     
     asyncio.run(do_replay())
 
