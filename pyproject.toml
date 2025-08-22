@@ -35,6 +35,12 @@ dev = [
 [project.scripts]
 mitm-toolkit = "mitm_toolkit.cli:main"
 
+[tool.setuptools]
+packages = ["mitm_toolkit"]
+
+[tool.setuptools.package-data]
+mitm_toolkit = ["static/**/*", "dashboard-ui/**/*"]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

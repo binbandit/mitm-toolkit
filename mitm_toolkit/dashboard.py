@@ -7,7 +7,7 @@ from typing import Dict, Set, Optional
 from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 
@@ -24,8 +24,18 @@ class DashboardServer:
         self.setup_routes()
         
     def setup_routes(self):
+        # Serve static files if they exist (built React app)
+        static_dir = Path(__file__).parent / "static"
+        if static_dir.exists():
+            self.app.mount("/assets", StaticFiles(directory=str(static_dir / "assets")), name="assets")
+        
         @self.app.get("/", response_class=HTMLResponse)
         async def dashboard():
+            # Try to serve built React app
+            index_file = static_dir / "index.html" if static_dir else None
+            if index_file and index_file.exists():
+                return FileResponse(str(index_file))
+            # Fallback to inline HTML
             return self.get_dashboard_html()
         
         @self.app.websocket("/ws")
