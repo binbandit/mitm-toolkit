@@ -32,10 +32,10 @@ def main():
 
 @main.command()
 @click.option("--port", "-p", default=8080, help="Proxy port")
-@click.option("--filter-hosts", "-f", help="Comma-separated list of hosts to capture")
-@click.option("--ignore-hosts", "-i", help="Comma-separated list of hosts to ignore")
-@click.option("--filter-patterns", help="Comma-separated URL patterns to capture")
-@click.option("--ignore-patterns", help="Comma-separated URL patterns to ignore")
+@click.option("--filter-hosts", "-f", help="Comma-separated domains to capture (includes subdomains, e.g., 'api.com' matches 'v1.api.com')")
+@click.option("--ignore-hosts", "-i", help="Comma-separated domains to ignore (includes subdomains)")
+@click.option("--filter-patterns", help="Comma-separated URL regex patterns to capture")
+@click.option("--ignore-patterns", help="Comma-separated URL regex patterns to ignore")
 @click.option("--verbose", "-v", is_flag=True, help="Show all connection logs")
 def capture(port, filter_hosts, ignore_hosts, filter_patterns, ignore_patterns, verbose):
     """Start capturing HTTP/HTTPS traffic through mitmproxy."""
