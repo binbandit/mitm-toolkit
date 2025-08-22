@@ -5,6 +5,7 @@ import { RequestDetails } from './components/RequestDetails'
 import { StatsBar } from './components/StatsBar'
 import { useWebSocket } from './hooks/useWebSocket'
 import { CapturedRequest, Host } from './types'
+import { api } from './lib/api'
 import { Button } from './components/ui/button'
 import { Input } from './components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs'
@@ -85,8 +86,7 @@ function App() {
 
   useEffect(() => {
     // Fetch initial hosts on mount
-    fetch('/api/hosts')
-      .then(res => res.json())
+    api.getHosts()
       .then(data => {
         const hostList = data.hosts.map((h: string) => ({ 
           name: h, 
@@ -94,6 +94,9 @@ function App() {
           rpcCount: 0 
         }))
         setHosts(hostList)
+      })
+      .catch(err => {
+        console.error('Failed to fetch hosts:', err)
       })
   }, [])
 

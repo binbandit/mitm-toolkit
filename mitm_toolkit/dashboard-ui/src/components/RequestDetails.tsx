@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { CapturedRequest, CapturedResponse } from '../types'
+import { api } from '../lib/api'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Badge } from './ui/badge'
@@ -20,8 +21,7 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
 
   useEffect(() => {
     setLoading(true)
-    fetch(`/api/request/${requestId}`)
-      .then(res => res.json())
+    api.getRequestDetail(requestId)
       .then(data => {
         setRequest(data.request)
         setResponse(data.response)

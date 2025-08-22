@@ -9,6 +9,7 @@ from pathlib import Path
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from .storage import StorageBackend
@@ -21,7 +22,18 @@ class DashboardServer:
         self.port = port
         self.app = FastAPI(title="MITM Toolkit Dashboard")
         self.active_connections: Set[WebSocket] = set()
+        self.setup_cors()
         self.setup_routes()
+    
+    def setup_cors(self):
+        """Configure CORS for development."""
+        self.app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:5173"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
         
     def setup_routes(self):
         # Serve static files if they exist (built React app)

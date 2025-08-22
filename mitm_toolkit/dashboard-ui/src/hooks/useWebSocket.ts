@@ -24,8 +24,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       return
     }
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${protocol}//${window.location.host}/ws`
+    // In development, connect to the backend server directly
+    const isDev = import.meta.env.DEV
+    const wsUrl = isDev 
+      ? 'ws://localhost:8000/ws'
+      : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
     
     const ws = new WebSocket(wsUrl)
     
