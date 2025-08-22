@@ -2,7 +2,7 @@
 name = "mitm-toolkit"
 version = "0.1.0"
 description = "A comprehensive toolkit for capturing and analyzing HTTP/HTTPS traffic to create local service replicas"
-authors = [{name = "MITM Toolkit Contributors"}]
+authors = [{ name = "MITM Toolkit Contributors" }]
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/binbandit/mitm-toolkit"

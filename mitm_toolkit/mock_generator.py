@@ -12,6 +12,40 @@ from .storage import StorageBackend
 class MockServerGenerator:
     def __init__(self, storage: StorageBackend):
         self.storage = storage
+    
+    def _get_endpoint_examples(self, host: str, endpoint: EndpointPattern) -> List[Dict[str, Any]]:
+        """Get actual request/response examples for an endpoint."""
+        # Convert pattern to actual path for lookup
+        path = endpoint.path_pattern
+        
+        # Get all variations for this endpoint
+        variations = []
+        requests = self.storage.get_requests_by_host(host)
+        
+        for request in requests:
+            if request.method.value == endpoint.method.value:
+                # Check if this request matches the endpoint pattern
+                if self._path_matches_pattern(request.path, endpoint.path_pattern):
+                    response = self.storage.get_response_for_request(request.id)
+                    if response:
+                        variations.append({
+                            "request": request,
+                            "response": response,
+                            "requestBody": request.body_decoded,
+                            "responseBody": response.body_decoded,
+                            "statusCode": response.status_code,
+                            "queryParams": request.query_params
+                        })
+        
+        return variations
+    
+    def _path_matches_pattern(self, path: str, pattern: str) -> bool:
+        """Check if a path matches an endpoint pattern."""
+        # Convert pattern like /users/{id} to regex
+        import re
+        regex_pattern = pattern.replace("{id}", r"[^/]+")
+        regex_pattern = f"^{regex_pattern}$"
+        return bool(re.match(regex_pattern, path))
 
     def generate_fastapi_mock(self, service_profile: ServiceProfile, output_dir: str):
         output_path = Path(output_dir)
@@ -306,6 +340,266 @@ app.listen(port, () => {
         
         package_file = output_path / "package.json"
         package_file.write_text(json.dumps(package_json, indent=2))
+    
+    def generate_hono_mock(self, service_profile: ServiceProfile, output_dir: str):
+        """Generate a Hono-based mock server for Node.js."""
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+        
+        hono_template = Template("""// Auto-generated Hono mock server for {{ service_name }}
+import { serve } from '@hono/node-server'
+import { Hono } from 'hono'
+import { cors } from 'hono/cors'
+import { logger } from 'hono/logger'
+import { prettyJSON } from 'hono/pretty-json'
+
+const app = new Hono()
+const port = process.env.PORT || 3000
+
+// Middleware
+app.use('*', cors())
+app.use('*', logger())
+app.use('*', prettyJSON())
+
+// Common headers middleware
+app.use('*', async (c, next) => {
+    await next()
+    const commonHeaders = {{ common_headers }}
+    Object.entries(commonHeaders).forEach(([key, value]) => {
+        c.header(key, value)
+    })
+})
+
+// Response variations storage
+const responseVariations = {{ response_variations }}
+
+// Helper function to match request with response
+function findMatchingResponse(endpoint, method, path, body, query) {
+    const variations = responseVariations[`${method}:${endpoint}`] || []
+    
+    if (variations.length === 0) {
+        return null
+    }
+    
+    // Try to find exact match based on request body
+    if (body && variations.length > 1) {
+        const bodyStr = JSON.stringify(body)
+        for (const variation of variations) {
+            if (variation.requestBody && JSON.stringify(variation.requestBody) === bodyStr) {
+                return variation
+            }
+        }
+    }
+    
+    // Try to match based on query parameters
+    if (query && Object.keys(query).length > 0) {
+        const queryStr = JSON.stringify(query)
+        for (const variation of variations) {
+            if (variation.queryParams && JSON.stringify(variation.queryParams) === queryStr) {
+                return variation
+            }
+        }
+    }
+    
+    // Return first variation as default
+    return variations[0]
+}
+
+// Helper to extract path params
+function extractPathParams(pattern, actualPath) {
+    const params = {}
+    const patternParts = pattern.split('/')
+    const actualParts = actualPath.split('/')
+    
+    for (let i = 0; i < patternParts.length; i++) {
+        if (patternParts[i].startsWith(':')) {
+            const paramName = patternParts[i].substring(1)
+            params[paramName] = actualParts[i]
+        }
+    }
+    
+    return params
+}
+
+{% for endpoint in endpoints %}
+// {{ endpoint.method }} {{ endpoint.path_pattern }}
+app.{{ endpoint.method_lower }}('{{ endpoint.path_pattern_hono }}', async (c) => {
+    const body = await c.req.json().catch(() => null)
+    const query = c.req.query()
+    const params = c.req.param()
+    
+    console.log(`${new Date().toISOString()} {{ endpoint.method }} {{ endpoint.path_pattern }}`, {
+        params,
+        query,
+        body
+    })
+    
+    // Find matching response variation
+    const variation = findMatchingResponse(
+        '{{ endpoint.path_pattern }}',
+        '{{ endpoint.method }}',
+        c.req.path,
+        body,
+        query
+    )
+    
+    if (variation) {
+        // Return actual captured response
+        c.status(variation.statusCode || 200)
+        
+        if (variation.responseBody) {
+            try {
+                // Try to parse as JSON
+                const jsonResponse = typeof variation.responseBody === 'string' 
+                    ? JSON.parse(variation.responseBody)
+                    : variation.responseBody
+                return c.json(jsonResponse)
+            } catch {
+                // Return as text if not JSON
+                return c.text(variation.responseBody)
+            }
+        }
+        
+        return c.json({ message: 'Empty response' })
+    }
+    
+    // Default response if no variation found
+    return c.json({
+        message: 'Mock response for {{ endpoint.path_pattern }}',
+        method: '{{ endpoint.method }}',
+        params,
+        query,
+        receivedBody: body
+    })
+})
+
+{% endfor %}
+
+// 404 handler
+app.notFound((c) => {
+    return c.json({
+        error: 'Not Found',
+        message: `Route ${c.req.method} ${c.req.path} not found`,
+        availableEndpoints: [
+            {% for endpoint in endpoints %}
+            '{{ endpoint.method }} {{ endpoint.path_pattern }}',
+            {% endfor %}
+        ]
+    }, 404)
+})
+
+// Error handler
+app.onError((err, c) => {
+    console.error(err.stack)
+    return c.json({
+        error: 'Internal Server Error',
+        message: err.message
+    }, 500)
+})
+
+// Start server
+console.log(`Mock server for {{ service_name }} starting on http://localhost:${port}`)
+console.log('Available endpoints:')
+{% for endpoint in endpoints %}
+console.log(`  {{ endpoint.method }} http://localhost:${port}{{ endpoint.path_pattern }}`)
+{% endfor %}
+
+serve({
+    fetch: app.fetch,
+    port: port
+})
+""")
+        
+        # Collect all response variations
+        response_variations = {}
+        endpoint_data = []
+        
+        for endpoint in service_profile.endpoints:
+            # Get actual examples from captured traffic
+            examples = self._get_endpoint_examples(service_profile.name, endpoint)
+            
+            # Store variations
+            key = f"{endpoint.method.value}:{endpoint.path_pattern}"
+            response_variations[key] = [
+                {
+                    "requestBody": json.loads(ex["requestBody"]) if ex["requestBody"] else None,
+                    "responseBody": ex["responseBody"],
+                    "statusCode": ex["statusCode"],
+                    "queryParams": ex["queryParams"]
+                }
+                for ex in examples[:10]  # Limit to 10 examples per endpoint
+            ]
+            
+            # Convert path pattern for Hono (uses :param instead of {param})
+            hono_pattern = endpoint.path_pattern.replace("{id}", ":id")
+            
+            endpoint_data.append({
+                "method": endpoint.method.value,
+                "method_lower": endpoint.method.value.lower(),
+                "path_pattern": endpoint.path_pattern,
+                "path_pattern_hono": hono_pattern,
+                "has_variations": len(examples) > 0
+            })
+        
+        # Generate the server code
+        mock_code = hono_template.render(
+            service_name=service_profile.name,
+            common_headers=json.dumps(service_profile.common_headers, indent=4),
+            response_variations=json.dumps(response_variations, indent=2),
+            endpoints=endpoint_data
+        )
+        
+        # Write server file
+        server_file = output_path / "server.js"
+        server_file.write_text(mock_code)
+        
+        # Create package.json for Hono
+        package_json = {
+            "name": f"{service_profile.name.lower().replace('.', '-')}-hono-mock",
+            "version": "1.0.0",
+            "description": f"Hono mock server for {service_profile.name}",
+            "type": "module",
+            "main": "server.js",
+            "scripts": {
+                "start": "node server.js",
+                "dev": "node --watch server.js"
+            },
+            "dependencies": {
+                "hono": "^3.11.0",
+                "@hono/node-server": "^1.3.0"
+            }
+        }
+        
+        package_file = output_path / "package.json"
+        package_file.write_text(json.dumps(package_json, indent=2))
+        
+        # Create README
+        readme_content = f"""# {service_profile.name} Hono Mock Server
+
+## Installation
+```bash
+npm install
+```
+
+## Running
+```bash
+npm start
+# or for development with auto-reload
+npm run dev
+```
+
+## Endpoints
+{chr(10).join([f"- {ep.method.value} {ep.path_pattern}" for ep in service_profile.endpoints])}
+
+## Features
+- Automatic request/response matching based on captured traffic
+- Multiple response variations per endpoint
+- Request body and query parameter matching
+- Actual response data from captured traffic
+"""
+        
+        readme_file = output_path / "README.md"
+        readme_file.write_text(readme_content)
 
     def _generate_function_name(self, endpoint: EndpointPattern) -> str:
         path = endpoint.path_pattern.replace("/", "_").replace("{", "").replace("}", "")
