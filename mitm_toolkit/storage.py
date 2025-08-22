@@ -186,32 +186,36 @@ class StorageBackend:
             return ServiceProfile.model_validate_json(row[0]) if row else None
 
     def _row_to_request(self, row) -> CapturedRequest:
+        # Convert Row to dict for easier access
+        row_dict = dict(row)
         return CapturedRequest(
-            id=row["id"],
-            timestamp=row["timestamp"],
-            method=row["method"],
-            url=row["url"],
-            path=row["path"],
-            query_params=json.loads(row["query_params"]),
-            headers=json.loads(row["headers"]),
-            body=row["body"],
-            body_decoded=row["body_decoded"],
-            content_type=row["content_type"],
-            host=row["host"],
-            port=row["port"],
-            scheme=row["scheme"],
-            metadata=json.loads(row.get("metadata")) if row.get("metadata") else None
+            id=row_dict["id"],
+            timestamp=row_dict["timestamp"],
+            method=row_dict["method"],
+            url=row_dict["url"],
+            path=row_dict["path"],
+            query_params=json.loads(row_dict["query_params"]),
+            headers=json.loads(row_dict["headers"]),
+            body=row_dict["body"],
+            body_decoded=row_dict["body_decoded"],
+            content_type=row_dict["content_type"],
+            host=row_dict["host"],
+            port=row_dict["port"],
+            scheme=row_dict["scheme"],
+            metadata=json.loads(row_dict.get("metadata")) if row_dict.get("metadata") else None
         )
 
     def _row_to_response(self, row) -> CapturedResponse:
+        # Convert Row to dict for consistency
+        row_dict = dict(row)
         return CapturedResponse(
-            id=row["id"],
-            request_id=row["request_id"],
-            timestamp=row["timestamp"],
-            status_code=row["status_code"],
-            headers=json.loads(row["headers"]),
-            body=row["body"],
-            body_decoded=row["body_decoded"],
-            content_type=row["content_type"],
-            response_time_ms=row["response_time_ms"]
+            id=row_dict["id"],
+            request_id=row_dict["request_id"],
+            timestamp=row_dict["timestamp"],
+            status_code=row_dict["status_code"],
+            headers=json.loads(row_dict["headers"]),
+            body=row_dict["body"],
+            body_decoded=row_dict["body_decoded"],
+            content_type=row_dict["content_type"],
+            response_time_ms=row_dict["response_time_ms"]
         )
