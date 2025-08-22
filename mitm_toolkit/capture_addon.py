@@ -7,12 +7,23 @@ from typing import Optional, Set, List, Pattern
 import re
 import json
 from urllib.parse import urlparse, parse_qs
+import sys
+from pathlib import Path
 
 from mitmproxy import http, ctx
 from mitmproxy.addonmanager import Loader
 
-from .models import CapturedRequest, CapturedResponse, HTTPMethod, ContentType
-from .storage import StorageBackend
+# Add the parent directory to path for imports when running as mitmproxy script
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+try:
+    # Try relative imports first (when imported as module)
+    from .models import CapturedRequest, CapturedResponse, HTTPMethod, ContentType
+    from .storage import StorageBackend
+except ImportError:
+    # Fall back to absolute imports (when run as mitmproxy script)
+    from mitm_toolkit.models import CapturedRequest, CapturedResponse, HTTPMethod, ContentType
+    from mitm_toolkit.storage import StorageBackend
 
 
 class IntelligentCaptureAddon:
