@@ -13,12 +13,12 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { CapturedRequest, Host } from './types'
 import { api } from './lib/api'
 import { Input } from './components/ui/input'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from './components/ui/tabs'
 import { Badge } from './components/ui/badge'
 import { ScrollArea } from './components/ui/scroll-area'
-import { Search, Activity, BarChart, Clock, Filter, Globe } from 'lucide-react'
+import { Search, Activity, BarChart, Clock, Filter, Globe, Menu } from 'lucide-react'
 import { Toaster } from './components/ui/sonner'
 import { Button } from './components/ui/button'
+import { ToggleGroup, ToggleGroupItem } from './components/ui/toggle-group'
 import { cn } from './lib/utils'
 
 function App() {
@@ -165,102 +165,116 @@ function App() {
   return (
     <>
       <Toaster position="bottom-right" />
-      <div className="flex h-screen bg-background">
+      <div className="flex flex-col h-screen bg-background">
         
-        {/* Sidebar with hosts */}
-        <div className={cn(
-          "border-r bg-card transition-all duration-200",
-          sidebarCollapsed ? "w-16" : "w-64"
-        )}>
-          <div className="h-full flex flex-col">
-            {/* Sidebar header */}
-            <div className="px-3 py-2 border-b flex items-center justify-between h-12">
-              {!sidebarCollapsed && (
-                <h2 className="text-sm font-semibold flex items-center gap-2">
-                  <Globe className="w-4 h-4" />
-                  Hosts
-                  {isConnected && (
-                    <Badge variant="outline" className="text-xs px-1 py-0">
-                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1 animate-pulse" />
-                      Live
-                    </Badge>
-                  )}
-                </h2>
-              )}
-              <div className="flex items-center gap-1">
-                {!sidebarCollapsed && <KeyboardShortcuts />}
-                {!sidebarCollapsed && <Settings />}
+        {/* Top Navigation Bar */}
+        <header className="border-b bg-card">
+          <div className="flex items-center justify-between h-14 px-4">
+            <div className="flex items-center gap-4">
+              {/* Logo/Brand */}
+              <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
                   onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
                 >
-                  <Activity className="h-4 w-4" />
+                  <Menu className="h-4 w-4" />
                 </Button>
+                <h1 className="text-lg font-semibold">MITM Toolkit</h1>
+                {isConnected && (
+                  <Badge variant="outline" className="text-xs">
+                    <span className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse" />
+                    Live
+                  </Badge>
+                )}
               </div>
+              
+              {/* Main Navigation */}
+              <nav className="flex items-center">
+                <ToggleGroup 
+                  type="single" 
+                  value={activeTab} 
+                  onValueChange={(v) => v && setActiveTab(v as any)}
+                  className="bg-muted/50"
+                >
+                  <ToggleGroupItem value="requests" size="sm">
+                    <Activity className="w-4 h-4 mr-1.5" />
+                    Requests
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="timeline" size="sm">
+                    <Clock className="w-4 h-4 mr-1.5" />
+                    Timeline
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="performance" size="sm">
+                    <BarChart className="w-4 h-4 mr-1.5" />
+                    Analytics
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </nav>
             </div>
             
-            {/* Hosts list */}
-            <div className="flex-1 overflow-hidden">
-              {!sidebarCollapsed && (
-                <HostList 
-                  hosts={hosts} 
-                  selectedHost={selectedHost} 
-                  onSelectHost={selectHost} 
-                />
-              )}
+            {/* Right side actions */}
+            <div className="flex items-center gap-2">
+              <KeyboardShortcuts />
+              <Settings />
             </div>
           </div>
-        </div>
+        </header>
 
-        {/* Main content area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Top stats bar */}
-          {selectedHost && (
-            <div className="border-b bg-card/50">
-              <StatsBar 
-                selectedHost={selectedHost}
-                totalRequests={stats.totalRequests}
-                rpcCalls={stats.rpcCalls}
-                avgResponseTime={stats.avgResponseTime}
-              />
-            </div>
-          )}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Sidebar with hosts */}
+          <aside className={cn(
+            "border-r bg-card/50 transition-all duration-200 flex flex-col",
+            sidebarCollapsed ? "w-0 border-0" : "w-64"
+          )}>
+            {!sidebarCollapsed && (
+              <>
+                <div className="px-4 py-3 border-b">
+                  <h2 className="text-sm font-medium flex items-center gap-2">
+                    <Globe className="w-4 h-4" />
+                    Captured Hosts
+                  </h2>
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <HostList 
+                    hosts={hosts} 
+                    selectedHost={selectedHost} 
+                    onSelectHost={selectHost} 
+                  />
+                </div>
+              </>
+            )}
+          </aside>
 
-          {/* Main tabs */}
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col">
-            <div className="border-b px-4 bg-card/30">
-              <TabsList className="h-10">
-                <TabsTrigger value="requests" className="text-xs">
-                  <Activity className="w-3 h-3 mr-1" />
-                  Requests
-                </TabsTrigger>
-                <TabsTrigger value="timeline" className="text-xs">
-                  <Clock className="w-3 h-3 mr-1" />
-                  Timeline
-                </TabsTrigger>
-                <TabsTrigger value="performance" className="text-xs">
-                  <BarChart className="w-3 h-3 mr-1" />
-                  Analytics
-                </TabsTrigger>
-              </TabsList>
-            </div>
+          {/* Main content area */}
+          <main className="flex-1 flex flex-col overflow-hidden">
+            {/* Stats bar */}
+            {selectedHost && (
+              <div className="border-b bg-muted/30">
+                <StatsBar 
+                  selectedHost={selectedHost}
+                  totalRequests={stats.totalRequests}
+                  rpcCalls={stats.rpcCalls}
+                  avgResponseTime={stats.avgResponseTime}
+                />
+              </div>
+            )}
 
-            {/* Requests tab */}
-            <TabsContent value="requests" className="flex-1 flex m-0">
+            {/* Content based on active tab */}
+            {activeTab === 'requests' && (
               <div className="flex w-full h-full">
                 {/* Request list panel */}
-                <div className="w-[450px] border-r flex flex-col bg-muted/5">
+                <div className="w-[400px] border-r flex flex-col">
                   {/* Filters */}
-                  <div className="p-3 border-b space-y-2 bg-card/50">
+                  <div className="p-3 border-b space-y-3 bg-card/30">
                     <div className="flex items-center gap-2">
                       <div className="relative flex-1">
                         <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-muted-foreground w-3.5 h-3.5" />
                         <Input
                           ref={searchInputRef}
                           type="search"
-                          placeholder="Filter requests..."
+                          placeholder="Search requests..."
                           value={filterText}
                           onChange={(e) => setFilterText(e.target.value)}
                           className="pl-8 h-8 text-xs"
@@ -272,15 +286,28 @@ function App() {
                       />
                     </div>
                     
-                    <div className="flex items-center gap-2">
-                      <Filter className="w-3 h-3 text-muted-foreground" />
-                      <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="flex-1">
-                        <TabsList className="grid w-full grid-cols-3 h-7">
-                          <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-                          <TabsTrigger value="http" className="text-xs">HTTP</TabsTrigger>
-                          <TabsTrigger value="rpc" className="text-xs">RPC</TabsTrigger>
-                        </TabsList>
-                      </Tabs>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Filter className="w-3 h-3" />
+                        Filter:
+                      </span>
+                      <ToggleGroup 
+                        type="single" 
+                        value={viewMode} 
+                        onValueChange={(v) => v && setViewMode(v as any)}
+                        size="sm"
+                        className="bg-muted/50"
+                      >
+                        <ToggleGroupItem value="all" size="sm" className="text-xs px-3">
+                          All
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="http" size="sm" className="text-xs px-3">
+                          HTTP
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="rpc" size="sm" className="text-xs px-3">
+                          RPC
+                        </ToggleGroupItem>
+                      </ToggleGroup>
                     </div>
                   </div>
 
@@ -311,36 +338,40 @@ function App() {
                   )}
                 </div>
               </div>
-            </TabsContent>
+            )}
 
             {/* Timeline tab */}
-            <TabsContent value="timeline" className="flex-1 p-4 m-0 overflow-auto">
-              <div className="max-w-6xl mx-auto">
-                <TimelineView 
-                  requests={filteredRequests}
-                  onSelectRequest={setSelectedRequest}
-                  selectedRequest={selectedRequest}
-                />
+            {activeTab === 'timeline' && (
+              <div className="flex-1 p-6 overflow-auto">
+                <div className="max-w-6xl mx-auto">
+                  <TimelineView 
+                    requests={filteredRequests}
+                    onSelectRequest={setSelectedRequest}
+                    selectedRequest={selectedRequest}
+                  />
+                </div>
               </div>
-            </TabsContent>
+            )}
 
             {/* Performance tab */}
-            <TabsContent value="performance" className="flex-1 p-4 m-0 overflow-auto">
-              <div className="max-w-6xl mx-auto">
-                {requests.length > 0 ? (
-                  <PerformanceMetrics requests={requests} />
-                ) : (
-                  <div className="flex items-center justify-center h-64 text-muted-foreground">
-                    <div className="text-center">
-                      <BarChart className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                      <p className="font-medium">No data available</p>
-                      <p className="text-xs mt-1">Select a host to view performance metrics</p>
+            {activeTab === 'performance' && (
+              <div className="flex-1 p-6 overflow-auto">
+                <div className="max-w-6xl mx-auto">
+                  {requests.length > 0 ? (
+                    <PerformanceMetrics requests={requests} />
+                  ) : (
+                    <div className="flex items-center justify-center h-64 text-muted-foreground">
+                      <div className="text-center">
+                        <BarChart className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                        <p className="font-medium">No data available</p>
+                        <p className="text-xs mt-1">Select a host to view performance metrics</p>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </TabsContent>
-          </Tabs>
+            )}
+          </main>
         </div>
       </div>
     </>
