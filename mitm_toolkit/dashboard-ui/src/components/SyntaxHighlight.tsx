@@ -93,7 +93,7 @@ export function SyntaxHighlight({
   }
   
   return (
-    <div className={`relative group w-full overflow-hidden code-theme-${codeTheme} ${className}`}>
+    <div className={`relative group overflow-hidden code-theme-${codeTheme} ${className}`} style={{ maxWidth: '100%' }}>
       <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
         <span className="text-[10px] text-muted-foreground bg-background/80 px-1.5 py-0.5 rounded">
           {detectedLanguage}
@@ -112,8 +112,8 @@ export function SyntaxHighlight({
         </Button>
       </div>
       <pre 
-        className="!bg-[#2d2d2d] !text-[#cccccc] p-2 rounded-md overflow-auto !text-[11px] !leading-relaxed w-full" 
-        style={{ maxHeight, margin: 0, maxWidth: '100%' }}
+        className="!bg-[#2d2d2d] !text-[#cccccc] p-2 rounded-md overflow-auto !text-[11px] !leading-relaxed" 
+        style={{ maxHeight, margin: 0, width: '100%', maxWidth: '100%' }}
       >
         <code 
           ref={codeRef}

@@ -229,13 +229,13 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b flex-shrink-0">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <Badge variant="outline">{request.method}</Badge>
-            <span className="font-mono text-sm">{request.path}</span>
+      <div className="p-4 border-b flex-shrink-0 overflow-hidden">
+        <div className="flex items-center justify-between mb-2 gap-2">
+          <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+            <Badge variant="outline" className="flex-shrink-0">{request.method}</Badge>
+            <span className="font-mono text-sm truncate" title={request.path}>{request.path}</span>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <Button
               variant="outline"
               size="sm"
@@ -284,9 +284,9 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
       </div>
 
       {/* Content */}
-      <ScrollArea className="flex-1 w-full">
-        <Tabs defaultValue="request" className="p-4 max-w-full">
-          <TabsList className="grid w-full grid-cols-4">
+      <ScrollArea className="flex-1 w-full overflow-hidden">
+        <Tabs defaultValue="request" className="p-4 w-full overflow-hidden">
+          <TabsList className="grid w-full grid-cols-4 flex-shrink-0">
             <TabsTrigger value="request">Request</TabsTrigger>
             <TabsTrigger value="response">Response</TabsTrigger>
             <TabsTrigger value="headers">Headers</TabsTrigger>
@@ -296,20 +296,22 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="request" className="space-y-4 overflow-x-hidden">
+          <TabsContent value="request" className="space-y-4 overflow-hidden">
             <Card className="overflow-hidden">
-              <CardHeader>
+              <CardHeader className="overflow-hidden">
                 <CardTitle>Request Details</CardTitle>
-                <CardDescription className="truncate">
+                <CardDescription className="break-all overflow-hidden">
                   {request.url}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
+              <CardContent className="space-y-4 overflow-hidden">
+                <div className="overflow-hidden">
                   <h4 className="text-sm font-medium mb-2">Request ID</h4>
-                  <code className="text-xs bg-muted p-2 rounded block overflow-x-auto break-all">
-                    {request.id}
-                  </code>
+                  <div className="overflow-x-auto max-w-full">
+                    <code className="text-xs bg-muted p-2 rounded block break-all whitespace-pre-wrap">
+                      {request.id}
+                    </code>
+                  </div>
                 </div>
 
                 {request.query_params && Object.keys(request.query_params).length > 0 && (
@@ -360,9 +362,9 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
             </Card>
           </TabsContent>
 
-          <TabsContent value="response" className="space-y-4 overflow-x-hidden">
+          <TabsContent value="response" className="space-y-4 overflow-hidden">
             <Card className="overflow-hidden">
-              <CardHeader>
+              <CardHeader className="overflow-hidden">
                 <CardTitle>Response Details</CardTitle>
                 {response && (
                   <CardDescription>
@@ -370,9 +372,9 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
                   </CardDescription>
                 )}
               </CardHeader>
-              <CardContent>
+              <CardContent className="overflow-hidden">
                 {response ? (
-                  <div className="space-y-4">
+                  <div className="space-y-4 overflow-hidden">
                     <div>
                       <h4 className="text-sm font-medium mb-2">Status Code</h4>
                       <Badge 
@@ -412,20 +414,20 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
             </Card>
           </TabsContent>
 
-          <TabsContent value="headers" className="space-y-4 overflow-x-hidden">
+          <TabsContent value="headers" className="space-y-4 overflow-hidden">
             <Card className="overflow-hidden">
-              <CardHeader>
+              <CardHeader className="overflow-hidden">
                 <CardTitle>Request Headers</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="overflow-hidden">
                 {request.headers && (
-                  <div className="space-y-2">
+                  <div className="space-y-2 overflow-hidden">
                     {Object.entries(request.headers).map(([key, value]) => (
-                      <div key={key} className="flex">
-                        <span className="font-mono text-xs text-muted-foreground w-1/3">
+                      <div key={key} className="flex overflow-hidden">
+                        <span className="font-mono text-xs text-muted-foreground w-1/3 flex-shrink-0 truncate" title={key}>
                           {key}:
                         </span>
-                        <span className="font-mono text-xs flex-1 break-all">
+                        <span className="font-mono text-xs flex-1 break-all whitespace-pre-wrap overflow-hidden">
                           {value}
                         </span>
                       </div>
@@ -436,18 +438,18 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
             </Card>
 
             {response && response.headers && (
-              <Card>
-                <CardHeader>
+              <Card className="overflow-hidden">
+                <CardHeader className="overflow-hidden">
                   <CardTitle>Response Headers</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
+                <CardContent className="overflow-hidden">
+                  <div className="space-y-2 overflow-hidden">
                     {Object.entries(response.headers).map(([key, value]) => (
-                      <div key={key} className="flex">
-                        <span className="font-mono text-xs text-muted-foreground w-1/3">
+                      <div key={key} className="flex overflow-hidden">
+                        <span className="font-mono text-xs text-muted-foreground w-1/3 flex-shrink-0 truncate" title={key}>
                           {key}:
                         </span>
-                        <span className="font-mono text-xs flex-1 break-all">
+                        <span className="font-mono text-xs flex-1 break-all whitespace-pre-wrap overflow-hidden">
                           {value}
                         </span>
                       </div>
@@ -458,8 +460,8 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
             )}
           </TabsContent>
 
-          <TabsContent value="security" className="space-y-4 overflow-x-hidden">
-            <div className="overflow-x-auto">
+          <TabsContent value="security" className="space-y-4 overflow-hidden">
+            <div className="overflow-hidden">
               <SecurityAnalyzer request={request} response={response} />
             </div>
           </TabsContent>
