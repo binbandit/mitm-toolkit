@@ -9,6 +9,7 @@ import { ScrollArea } from './ui/scroll-area'
 import { Copy, RefreshCw, Terminal, Download, Clock, Database, Shield } from 'lucide-react'
 import { format } from 'date-fns'
 import { SecurityAnalyzer } from './SecurityAnalyzer'
+import { SyntaxHighlight } from './SyntaxHighlight'
 import { toast } from 'sonner'
 
 interface RequestDetailsProps {
@@ -133,13 +134,7 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
     if (contentType.includes('application/json') || contentType.includes('text/json')) {
       try {
         const jsonData = JSON.parse(resp.body_decoded)
-        return (
-          <div className="relative">
-            <pre className="text-xs bg-muted p-2 rounded overflow-auto max-h-96 max-w-full">
-              <code className="block whitespace-pre-wrap break-all">{JSON.stringify(jsonData, null, 2)}</code>
-            </pre>
-          </div>
-        )
+        return <SyntaxHighlight code={JSON.stringify(jsonData, null, 2)} language="json" />
       } catch (e) {
         // Not valid JSON, show as text
       }
@@ -154,9 +149,9 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
           </div>
           <details className="cursor-pointer">
             <summary className="text-xs text-muted-foreground">View Source</summary>
-            <pre className="text-xs bg-muted p-2 rounded overflow-auto mt-2 max-w-full max-h-96">
-              <code className="block whitespace-pre-wrap break-all">{resp.body_decoded}</code>
-            </pre>
+            <div className="mt-2">
+              <SyntaxHighlight code={resp.body_decoded} language="markup" />
+            </div>
           </details>
         </div>
       )
@@ -164,45 +159,21 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
     
     // Handle XML
     if (contentType.includes('text/xml') || contentType.includes('application/xml')) {
-      return (
-        <div className="relative">
-          <pre className="text-xs bg-muted p-2 rounded overflow-auto max-w-full max-h-96">
-            <code className="block whitespace-pre-wrap break-all">{resp.body_decoded}</code>
-          </pre>
-        </div>
-      )
+      return <SyntaxHighlight code={resp.body_decoded} language="markup" />
     }
     
     // Handle CSS
     if (contentType.includes('text/css')) {
-      return (
-        <div className="relative">
-          <pre className="text-xs bg-muted p-2 rounded overflow-auto max-w-full max-h-96">
-            <code className="block whitespace-pre-wrap break-all">{resp.body_decoded}</code>
-          </pre>
-        </div>
-      )
+      return <SyntaxHighlight code={resp.body_decoded} language="css" />
     }
     
     // Handle JavaScript
     if (contentType.includes('application/javascript') || contentType.includes('text/javascript')) {
-      return (
-        <div className="relative">
-          <pre className="text-xs bg-muted p-2 rounded overflow-auto max-w-full max-h-96">
-            <code className="block whitespace-pre-wrap break-all">{resp.body_decoded}</code>
-          </pre>
-        </div>
-      )
+      return <SyntaxHighlight code={resp.body_decoded} language="javascript" />
     }
     
-    // Default: show as plain text
-    return (
-      <div className="relative">
-        <pre className="text-xs bg-muted p-2 rounded overflow-auto max-w-full max-h-96">
-          <code className="block whitespace-pre-wrap break-all">{resp.body_decoded}</code>
-        </pre>
-      </div>
-    )
+    // Default: auto-detect language
+    return <SyntaxHighlight code={resp.body_decoded} />
   }
 
   if (loading) {
@@ -307,9 +278,11 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
                 {request.query_params && Object.keys(request.query_params).length > 0 && (
                   <div>
                     <h4 className="text-sm font-medium mb-2">Query Parameters</h4>
-                    <pre className="text-xs bg-muted p-2 rounded overflow-auto max-w-full max-h-48">
-                      <code className="block whitespace-pre-wrap break-all">{JSON.stringify(request.query_params, null, 2)}</code>
-                    </pre>
+                    <SyntaxHighlight 
+                      code={JSON.stringify(request.query_params, null, 2)} 
+                      language="json"
+                      maxHeight="12rem" 
+                    />
                   </div>
                 )}
 
@@ -322,9 +295,7 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
                         {new Blob([request.body_decoded]).size} bytes
                       </Badge>
                     </div>
-                    <pre className="text-xs bg-muted p-2 rounded overflow-auto max-w-full max-h-96">
-                      <code className="block whitespace-pre-wrap break-all">{request.body_decoded}</code>
-                    </pre>
+                    <SyntaxHighlight code={request.body_decoded} />
                   </div>
                 )}
 
