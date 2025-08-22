@@ -39,7 +39,18 @@ class IntelligentCaptureAddon:
             "total_captured": 0,
             "filtered": 0,
             "errors": 0,
-            "rpc_calls": 0
+            "rpc_calls": 0,
+            "cert_errors": 0
+        }
+        # Domains that commonly use certificate pinning
+        self.pinned_cert_domains = {
+            "apple.com",
+            "icloud.com", 
+            "sentry.io",
+            "bugsnag.com",
+            "crashlytics.com",
+            "googleapis.com",
+            "gstatic.com"
         }
 
     def load(self, loader: Loader):
@@ -72,6 +83,12 @@ class IntelligentCaptureAddon:
             typespec=bool,
             default=True,
             help="Enable/disable capture"
+        )
+        loader.add_option(
+            name="auto_skip_cert_errors",
+            typespec=bool,
+            default=True,
+            help="Automatically skip domains with certificate errors"
         )
 
     def configure(self, updates):
@@ -115,6 +132,12 @@ class IntelligentCaptureAddon:
             
         host = flow.request.pretty_host
         url = flow.request.pretty_url
+        
+        # Auto-skip known certificate-pinned domains if enabled
+        if getattr(ctx.options, 'auto_skip_cert_errors', True):
+            if self._matches_host_filter(host, self.pinned_cert_domains):
+                ctx.log.debug(f"Skipping known cert-pinned domain: {host}")
+                return False
         
         # Check ignore list (with subdomain matching)
         if self.ignore_hosts and self._matches_host_filter(host, self.ignore_hosts):
@@ -197,7 +220,7 @@ class IntelligentCaptureAddon:
             self.storage.save_request(captured_request)
             self.stats["total_captured"] += 1
             
-            log_msg = f"Captured request: {flow.request.method} {flow.request.pretty_url}"
+            log_msg = f"✓ Captured request: {flow.request.method} {flow.request.pretty_url}"
             if is_rpc:
                 log_msg += f" [RPC: {rpc_info.get('type')}]"
             ctx.log.info(log_msg)
