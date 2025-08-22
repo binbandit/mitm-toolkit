@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from jinja2 import Template
 
 from .models import ServiceProfile, EndpointPattern
