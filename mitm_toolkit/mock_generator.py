@@ -51,6 +51,30 @@ class MockServerGenerator:
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
         
+        # Collect all endpoint variations with actual data
+        endpoint_data = []
+        for endpoint in service_profile.endpoints:
+            examples = self._get_endpoint_examples(service_profile.host, endpoint)
+            variations = []
+            
+            for example in examples[:10]:  # Limit to 10 examples
+                variations.append({
+                    "requestBody": example.get("requestBody"),
+                    "queryParams": example.get("queryParams", {}),
+                    "responseBody": example.get("responseBody"),
+                    "statusCode": example.get("statusCode", 200)
+                })
+            
+            endpoint_data.append({
+                "method": endpoint.method.value,
+                "path_pattern": endpoint.path_pattern,
+                "parameters": endpoint.parameters,
+                "query_params": endpoint.query_params,
+                "function_name": self._generate_function_name(endpoint),
+                "variations": json.dumps(variations, indent=4),
+                "has_variations": len(variations) > 0
+            })
+        
         main_template = Template("""\"\"\"Auto-generated mock server for {{ service_name }}\"\"\"
 
 from fastapi import FastAPI, Response, Request
@@ -62,6 +86,45 @@ app = FastAPI(title="{{ service_name }} Mock Server")
 
 # Common headers for all responses
 COMMON_HEADERS = {{ common_headers }}
+
+# Endpoint variations with actual captured data
+ENDPOINT_DATA = {
+{% for endpoint in endpoints %}
+{% if endpoint.has_variations %}
+    "{{ endpoint.method }}:{{ endpoint.path_pattern }}": {{ endpoint.variations }},
+{% endif %}
+{% endfor %}
+}
+
+def find_matching_response(method: str, path: str, body: Any, query_params: Dict) -> Optional[Dict]:
+    \"\"\"Find a matching response based on request parameters.\"\"\"
+    key = f"{method}:{path}"
+    variations = ENDPOINT_DATA.get(key, [])
+    
+    if not variations:
+        return None
+    
+    # Try to find exact match
+    for var in variations:
+        # Match by query params
+        if var.get("queryParams") and query_params:
+            if all(str(query_params.get(k)) == str(v) for k, v in var["queryParams"].items()):
+                return var
+        
+        # Match by body
+        if body and var.get("requestBody"):
+            if isinstance(body, dict) and isinstance(var["requestBody"], str):
+                try:
+                    var_body = json.loads(var["requestBody"])
+                    if body == var_body:
+                        return var
+                except:
+                    pass
+            elif str(body) == str(var["requestBody"]):
+                return var
+    
+    # Return first as default
+    return variations[0] if variations else None
 
 {% for endpoint in endpoints %}
 @app.{{ endpoint.method.lower() }}("{{ endpoint.path_pattern }}")
@@ -76,17 +139,60 @@ async def {{ endpoint.function_name }}(
     {%- endif -%}
     request: Request = None
 ):
-    \"\"\"{{ endpoint.description }}\"\"\"
-    {% if endpoint.response_example %}
-    response_data = {{ endpoint.response_example }}
-    {% else %}
-    response_data = {"message": "Mock response for {{ endpoint.path_pattern }}"}
+    \"\"\"Mock endpoint for {{ endpoint.method }} {{ endpoint.path_pattern }}\"\"\"
+    
+    # Get request body if applicable
+    body = None
+    if request and request.method in ["POST", "PUT", "PATCH"]:
+        try:
+            body = await request.json()
+        except:
+            try:
+                body_bytes = await request.body()
+                body = body_bytes.decode('utf-8') if body_bytes else None
+            except:
+                pass
+    
+    # Build query params dict
+    query_params = {}
+    {% for qp in endpoint.query_params %}
+    if {{ qp }} is not None:
+        query_params["{{ qp }}"] = {{ qp }}
+    {% endfor %}
+    
+    # Find matching response
+    {% if endpoint.has_variations %}
+    response = find_matching_response("{{ endpoint.method }}", "{{ endpoint.path_pattern }}", body, query_params)
+    
+    if response:
+        response_body = response.get("responseBody")
+        status_code = response.get("statusCode", 200)
+        
+        # Parse JSON if needed
+        if isinstance(response_body, str):
+            try:
+                response_body = json.loads(response_body)
+            except:
+                pass
+        
+        return JSONResponse(
+            content=response_body,
+            status_code=status_code,
+            headers={**COMMON_HEADERS}
+        )
     {% endif %}
     
-    headers = {**COMMON_HEADERS}
-    return JSONResponse(content=response_data, headers=headers)
+    # Default mock response
+    return JSONResponse(
+        content={"message": "Mock response for {{ endpoint.path_pattern }}"},
+        headers={**COMMON_HEADERS}
+    )
 
 {% endfor %}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "endpoints": len(ENDPOINT_DATA)}
 
 if __name__ == "__main__":
     import uvicorn
