@@ -36,7 +36,8 @@ def main():
 @click.option("--ignore-hosts", "-i", help="Comma-separated list of hosts to ignore")
 @click.option("--filter-patterns", help="Comma-separated URL patterns to capture")
 @click.option("--ignore-patterns", help="Comma-separated URL patterns to ignore")
-def capture(port, filter_hosts, ignore_hosts, filter_patterns, ignore_patterns):
+@click.option("--verbose", "-v", is_flag=True, help="Show all connection logs")
+def capture(port, filter_hosts, ignore_hosts, filter_patterns, ignore_patterns, verbose):
     """Start capturing HTTP/HTTPS traffic through mitmproxy."""
     console.print(f"[green]Starting MITM proxy on port {port}...[/green]")
     
@@ -48,6 +49,12 @@ def capture(port, filter_hosts, ignore_hosts, filter_patterns, ignore_patterns):
         "-s", str(addon_path),
         "--set", f"confdir={Path.home() / '.mitmproxy'}"
     ]
+    
+    # Set verbosity level
+    if not verbose:
+        cmd.extend(["--set", "termlog_verbosity=error"])  # Only show errors
+    else:
+        cmd.extend(["--set", "termlog_verbosity=info"])  # Show all logs
     
     if filter_hosts:
         cmd.extend(["--set", f"capture_filter_hosts={filter_hosts}"])
