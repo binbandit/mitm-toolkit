@@ -22,16 +22,6 @@ class UserSession:
 
 
 @dataclass
-class UserFlow:
-    flow_id: str
-    name: str
-    steps: List[FlowStep]
-    session_id: Optional[str]
-    success: bool = False
-    duration_ms: Optional[float] = None
-
-
-@dataclass
 class FlowStep:
     order: int
     request_id: str
@@ -40,6 +30,16 @@ class FlowStep:
     status_code: Optional[int]
     timestamp: datetime
     extracted_data: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class UserFlow:
+    flow_id: str
+    name: str
+    steps: List[FlowStep]
+    session_id: Optional[str]
+    success: bool = False
+    duration_ms: Optional[float] = None
 
 
 class SessionManager:
