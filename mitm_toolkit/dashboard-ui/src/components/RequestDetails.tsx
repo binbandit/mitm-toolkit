@@ -134,8 +134,8 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
       try {
         const jsonData = JSON.parse(resp.body_decoded)
         return (
-          <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">
-            {JSON.stringify(jsonData, null, 2)}
+          <pre className="text-xs bg-muted p-2 rounded overflow-x-auto max-w-full">
+            <code className="block w-max min-w-full">{JSON.stringify(jsonData, null, 2)}</code>
           </pre>
         )
       } catch (e) {
@@ -152,8 +152,8 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
           </div>
           <details className="cursor-pointer">
             <summary className="text-xs text-muted-foreground">View Source</summary>
-            <pre className="text-xs bg-muted p-2 rounded overflow-x-auto mt-2">
-              {resp.body_decoded}
+            <pre className="text-xs bg-muted p-2 rounded overflow-x-auto mt-2 max-w-full">
+              <code className="block w-max min-w-full">{resp.body_decoded}</code>
             </pre>
           </details>
         </div>
@@ -163,8 +163,8 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
     // Handle XML
     if (contentType.includes('text/xml') || contentType.includes('application/xml')) {
       return (
-        <pre className="text-xs bg-muted p-2 rounded overflow-x-auto language-xml">
-          {resp.body_decoded}
+        <pre className="text-xs bg-muted p-2 rounded overflow-x-auto max-w-full">
+          <code className="block w-max min-w-full">{resp.body_decoded}</code>
         </pre>
       )
     }
@@ -172,8 +172,8 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
     // Handle CSS
     if (contentType.includes('text/css')) {
       return (
-        <pre className="text-xs bg-muted p-2 rounded overflow-x-auto language-css">
-          {resp.body_decoded}
+        <pre className="text-xs bg-muted p-2 rounded overflow-x-auto max-w-full">
+          <code className="block w-max min-w-full">{resp.body_decoded}</code>
         </pre>
       )
     }
@@ -181,16 +181,16 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
     // Handle JavaScript
     if (contentType.includes('application/javascript') || contentType.includes('text/javascript')) {
       return (
-        <pre className="text-xs bg-muted p-2 rounded overflow-x-auto language-javascript">
-          {resp.body_decoded}
+        <pre className="text-xs bg-muted p-2 rounded overflow-x-auto max-w-full">
+          <code className="block w-max min-w-full">{resp.body_decoded}</code>
         </pre>
       )
     }
     
     // Default: show as plain text
     return (
-      <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">
-        {resp.body_decoded}
+      <pre className="text-xs bg-muted p-2 rounded overflow-x-auto max-w-full">
+        <code className="block w-max min-w-full">{resp.body_decoded}</code>
       </pre>
     )
   }
@@ -212,9 +212,9 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b">
+      <div className="p-4 border-b flex-shrink-0">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Badge variant="outline">{request.method}</Badge>
@@ -278,18 +278,18 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="request" className="space-y-4">
-            <Card>
+          <TabsContent value="request" className="space-y-4 overflow-x-hidden">
+            <Card className="overflow-hidden">
               <CardHeader>
                 <CardTitle>Request Details</CardTitle>
-                <CardDescription>
+                <CardDescription className="truncate">
                   {request.url}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 overflow-x-auto">
                 <div>
                   <h4 className="text-sm font-medium mb-2">Request ID</h4>
-                  <code className="text-xs bg-muted p-2 rounded block">
+                  <code className="text-xs bg-muted p-2 rounded block overflow-x-auto break-all">
                     {request.id}
                   </code>
                 </div>
@@ -297,8 +297,8 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
                 {request.query_params && Object.keys(request.query_params).length > 0 && (
                   <div>
                     <h4 className="text-sm font-medium mb-2">Query Parameters</h4>
-                    <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">
-                      {JSON.stringify(request.query_params, null, 2)}
+                    <pre className="text-xs bg-muted p-2 rounded overflow-x-auto max-w-full">
+                      <code className="block w-max min-w-full">{JSON.stringify(request.query_params, null, 2)}</code>
                     </pre>
                   </div>
                 )}
@@ -312,8 +312,8 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
                         {new Blob([request.body_decoded]).size} bytes
                       </Badge>
                     </div>
-                    <pre className="text-xs bg-muted p-2 rounded overflow-x-auto">
-                      {request.body_decoded}
+                    <pre className="text-xs bg-muted p-2 rounded overflow-x-auto max-w-full">
+                      <code className="block w-max min-w-full">{request.body_decoded}</code>
                     </pre>
                   </div>
                 )}
@@ -342,8 +342,8 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
             </Card>
           </TabsContent>
 
-          <TabsContent value="response" className="space-y-4">
-            <Card>
+          <TabsContent value="response" className="space-y-4 overflow-x-hidden">
+            <Card className="overflow-hidden">
               <CardHeader>
                 <CardTitle>Response Details</CardTitle>
                 {response && (
@@ -394,8 +394,8 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
             </Card>
           </TabsContent>
 
-          <TabsContent value="headers" className="space-y-4">
-            <Card>
+          <TabsContent value="headers" className="space-y-4 overflow-x-hidden">
+            <Card className="overflow-hidden">
               <CardHeader>
                 <CardTitle>Request Headers</CardTitle>
               </CardHeader>
@@ -440,8 +440,10 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
             )}
           </TabsContent>
 
-          <TabsContent value="security" className="space-y-4">
-            <SecurityAnalyzer request={request} response={response} />
+          <TabsContent value="security" className="space-y-4 overflow-x-hidden">
+            <div className="overflow-x-auto">
+              <SecurityAnalyzer request={request} response={response} />
+            </div>
           </TabsContent>
         </Tabs>
       </ScrollArea>
