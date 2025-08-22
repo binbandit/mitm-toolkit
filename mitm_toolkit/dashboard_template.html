@@ -473,6 +473,12 @@
             return `
                 <div class="detail-content">
                     <div class="detail-section">
+                        <h4>Request ID</h4>
+                        <pre>${request.id}</pre>
+                        <small style="color: #666;">Use this ID with: mitm-toolkit replay ${request.id}</small>
+                    </div>
+                    
+                    <div class="detail-section">
                         <h4>URL</h4>
                         <pre>${request.url}</pre>
                     </div>
