@@ -96,17 +96,31 @@ class DashboardServer:
             
             response = self.storage.get_response_for_request(request_id)
             
+            request_dict = {
+                "id": request.id,
+                "method": request.method.value,
+                "url": request.url,
+                "path": request.path,
+                "headers": dict(request.headers),
+                "body": request.body_decoded,
+                "query_params": request.query_params,
+                "timestamp": request.timestamp.isoformat()
+            }
+            
+            # Add RPC metadata if present
+            if request.metadata and "rpc" in request.metadata:
+                rpc_info = request.metadata["rpc"]
+                request_dict["is_rpc"] = True
+                request_dict["rpc_type"] = rpc_info.get("type", "unknown")
+                if rpc_info.get("batch"):
+                    request_dict["rpc_method"] = rpc_info.get("methods", ["unknown"])[0] if rpc_info.get("methods") else "batch"
+                    request_dict["rpc_batch"] = True
+                else:
+                    request_dict["rpc_method"] = rpc_info.get("method", "unknown")
+                    request_dict["rpc_batch"] = False
+            
             return {
-                "request": {
-                    "id": request.id,
-                    "method": request.method.value,
-                    "url": request.url,
-                    "path": request.path,
-                    "headers": dict(request.headers),
-                    "body": request.body_decoded,
-                    "query_params": request.query_params,
-                    "timestamp": request.timestamp.isoformat()
-                },
+                "request": request_dict,
                 "response": {
                     "status_code": response.status_code,
                     "headers": dict(response.headers),
@@ -206,8 +220,12 @@ class DashboardServer:
             rpc_info = request.metadata["rpc"]
             result["is_rpc"] = True
             result["rpc_type"] = rpc_info.get("type", "unknown")
-            result["rpc_method"] = rpc_info.get("method") or rpc_info.get("methods", ["unknown"])[0] if rpc_info.get("batch") else "unknown"
-            result["rpc_batch"] = rpc_info.get("batch", False)
+            if rpc_info.get("batch"):
+                result["rpc_method"] = rpc_info.get("methods", ["unknown"])[0] if rpc_info.get("methods") else "batch"
+                result["rpc_batch"] = True
+            else:
+                result["rpc_method"] = rpc_info.get("method", "unknown")
+                result["rpc_batch"] = False
         else:
             result["is_rpc"] = False
             

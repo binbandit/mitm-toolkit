@@ -32,9 +32,16 @@ class StorageBackend:
                     content_type TEXT,
                     host TEXT,
                     port INTEGER,
-                    scheme TEXT
+                    scheme TEXT,
+                    metadata TEXT
                 )
             """)
+            
+            # Check if metadata column exists, add it if not (for migration)
+            cursor = conn.execute("PRAGMA table_info(requests)")
+            columns = [col[1] for col in cursor.fetchall()]
+            if "metadata" not in columns:
+                conn.execute("ALTER TABLE requests ADD COLUMN metadata TEXT")
             
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS responses (
@@ -79,8 +86,8 @@ class StorageBackend:
         with self._get_connection() as conn:
             conn.execute("""
                 INSERT OR REPLACE INTO requests 
-                (id, timestamp, method, url, path, query_params, headers, body, body_decoded, content_type, host, port, scheme)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (id, timestamp, method, url, path, query_params, headers, body, body_decoded, content_type, host, port, scheme, metadata)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 request.id,
                 request.timestamp,
@@ -94,7 +101,8 @@ class StorageBackend:
                 request.content_type.value if request.content_type else None,
                 request.host,
                 request.port,
-                request.scheme
+                request.scheme,
+                json.dumps(request.metadata) if request.metadata else None
             ))
 
     def save_response(self, response: CapturedResponse):
@@ -191,7 +199,8 @@ class StorageBackend:
             content_type=row["content_type"],
             host=row["host"],
             port=row["port"],
-            scheme=row["scheme"]
+            scheme=row["scheme"],
+            metadata=json.loads(row.get("metadata")) if row.get("metadata") else None
         )
 
     def _row_to_response(self, row) -> CapturedResponse:
