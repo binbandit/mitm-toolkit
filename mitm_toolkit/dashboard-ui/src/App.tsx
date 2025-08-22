@@ -117,13 +117,13 @@ function App() {
           </h2>
           <Settings />
         </div>
-        <ScrollArea className="h-[calc(100vh-4rem)]">
+        <div className="h-[calc(100vh-4rem)]">
           <HostList 
             hosts={hosts} 
             selectedHost={selectedHost} 
             onSelectHost={selectHost} 
           />
-        </ScrollArea>
+        </div>
       </div>
 
       {/* Main content */}
