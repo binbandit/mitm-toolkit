@@ -226,13 +226,31 @@ def show_requests(host, path):
 
 @main.command()
 @click.option("--port", "-p", default=8000, help="Dashboard port")
-def dashboard(port):
+@click.option("--dev", is_flag=True, help="Start in development mode (requires building first)")
+def dashboard(port, dev):
     """Launch web dashboard for viewing captured requests."""
     from .dashboard import DashboardServer
     storage = StorageBackend()
     server = DashboardServer(storage, port=port)
     
+    # Check if React dashboard is built
+    if not server.check_dashboard_built():
+        console.print("[yellow]⚠️  React dashboard not built yet![/yellow]")
+        console.print("\n[bold]To build the dashboard:[/bold]")
+        console.print("  cd mitm_toolkit/dashboard-ui")
+        console.print("  pnpm install")
+        console.print("  pnpm build")
+        console.print("\n[bold]For development mode with hot reload:[/bold]")
+        console.print("  cd mitm_toolkit/dashboard-ui")
+        console.print("  pnpm dev")
+        console.print("  # Then access at http://localhost:3000")
+        console.print("\n[dim]Starting with fallback UI...[/dim]\n")
+    
     console.print(f"[green]Starting web dashboard on http://localhost:{port}[/green]")
+    
+    if server.check_dashboard_built():
+        console.print("[green]✓ Using React dashboard[/green]")
+    
     console.print("[yellow]Press Ctrl+C to stop[/yellow]")
     
     try:

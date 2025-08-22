@@ -35,7 +35,7 @@ class DashboardServer:
             index_file = static_dir / "index.html" if static_dir else None
             if index_file and index_file.exists():
                 return FileResponse(str(index_file))
-            # Fallback to inline HTML
+            # Fallback to build instructions
             return self.get_dashboard_html()
         
         @self.app.websocket("/ws")
@@ -194,314 +194,99 @@ class DashboardServer:
             
         return result
     
+    def check_dashboard_built(self) -> bool:
+        """Check if the React dashboard has been built."""
+        static_dir = Path(__file__).parent / "static"
+        index_file = static_dir / "index.html"
+        return index_file.exists()
+    
     def get_dashboard_html(self) -> str:
-        # Load the external template
-        from pathlib import Path
-        template_path = Path(__file__).parent / "dashboard_template.html"
-        if template_path.exists():
-            return template_path.read_text()
-        
-        # Fallback to inline HTML if template not found
-        return """<!DOCTYPE html>
+        # First check if React app is built
+        if self.check_dashboard_built():
+            # This shouldn't be called if React app exists, but just in case
+            return """<!DOCTYPE html>
 <html>
 <head>
     <title>MITM Toolkit Dashboard</title>
+    <meta http-equiv="refresh" content="0; url=/">
+</head>
+<body>
+    <p>Redirecting to dashboard...</p>
+</body>
+</html>"""
+        
+        # If React app not built, show instructions
+        return """<!DOCTYPE html>
+<html>
+<head>
+    <title>MITM Toolkit Dashboard - Build Required</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
+        body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #0a0a0a; 
-            color: #e0e0e0;
-        }
-        .container { display: flex; height: 100vh; }
-        .sidebar { 
-            width: 250px; 
-            background: #111; 
-            border-right: 1px solid #333;
-            overflow-y: auto;
-        }
-        .main { flex: 1; display: flex; flex-direction: column; }
-        .header { 
-            padding: 20px; 
-            background: #111; 
-            border-bottom: 1px solid #333;
-        }
-        h1 { font-size: 24px; color: #fff; }
-        .host-list { list-style: none; }
-        .host-item { 
-            padding: 12px 16px; 
-            cursor: pointer; 
-            border-bottom: 1px solid #222;
-            transition: background 0.2s;
-        }
-        .host-item:hover { background: #1a1a1a; }
-        .host-item.active { background: #2a2a2a; color: #4CAF50; }
-        .request-list { 
-            flex: 1; 
-            overflow-y: auto; 
-            padding: 20px;
-        }
-        .request-item {
-            display: flex;
-            align-items: center;
-            padding: 12px;
-            background: #1a1a1a;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            transition: transform 0.2s;
-        }
-        .request-item:hover { 
-            transform: translateX(4px);
-            background: #222;
-        }
-        .method {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-weight: bold;
-            margin-right: 12px;
-            font-size: 12px;
-        }
-        .method.GET { background: #4CAF50; color: white; }
-        .method.POST { background: #2196F3; color: white; }
-        .method.PUT { background: #FF9800; color: white; }
-        .method.DELETE { background: #f44336; color: white; }
-        .method.PATCH { background: #9C27B0; color: white; }
-        .path { flex: 1; font-family: monospace; font-size: 14px; }
-        .status {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            margin-left: 12px;
-        }
-        .status.success { background: #4CAF50; color: white; }
-        .status.error { background: #f44336; color: white; }
-        .time { 
-            color: #666; 
-            font-size: 12px; 
-            margin-left: 12px;
-        }
-        .stats {
-            display: flex;
-            gap: 20px;
-            padding: 20px;
-            background: #1a1a1a;
-            border-bottom: 1px solid #333;
-        }
-        .stat-item {
-            display: flex;
-            flex-direction: column;
-        }
-        .stat-label {
-            font-size: 12px;
-            color: #666;
-            text-transform: uppercase;
-        }
-        .stat-value {
-            font-size: 24px;
-            font-weight: bold;
-            color: #4CAF50;
-        }
-        .live-indicator {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            background: #4CAF50;
-            border-radius: 50%;
-            margin-left: 8px;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        .empty-state {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: #666;
-        }
-        .filter-bar {
-            padding: 16px 20px;
-            background: #1a1a1a;
-            border-bottom: 1px solid #333;
-        }
-        input[type="search"] {
-            width: 100%;
-            padding: 8px 12px;
             background: #0a0a0a;
-            border: 1px solid #333;
-            border-radius: 4px;
             color: #e0e0e0;
-            font-size: 14px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            max-width: 600px;
+            padding: 2rem;
+            background: #111;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+        h1 { color: #fff; margin-bottom: 1rem; }
+        .warning {
+            background: #332200;
+            border: 1px solid #ffaa00;
+            color: #ffaa00;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+        }
+        pre {
+            background: #1a1a1a;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 0.5rem 0;
+        }
+        code {
+            color: #4CAF50;
+            font-family: 'Courier New', monospace;
+        }
+        .note {
+            color: #888;
+            font-size: 0.9em;
+            margin-top: 1rem;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="sidebar">
-            <div class="header">
-                <h2>Hosts</h2>
-            </div>
-            <ul class="host-list" id="hostList"></ul>
+        <h1>🚀 Dashboard Build Required</h1>
+        <div class="warning">
+            <strong>⚠️ The React dashboard has not been built yet.</strong>
+            <p>Please build the dashboard to use the modern UI.</p>
         </div>
-        <div class="main">
-            <div class="header">
-                <h1>MITM Toolkit Dashboard <span class="live-indicator"></span></h1>
-            </div>
-            <div class="stats" id="stats">
-                <div class="stat-item">
-                    <span class="stat-label">Total Requests</span>
-                    <span class="stat-value" id="totalRequests">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Active Host</span>
-                    <span class="stat-value" id="activeHost">-</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Avg Response Time</span>
-                    <span class="stat-value" id="avgTime">-</span>
-                </div>
-            </div>
-            <div class="filter-bar">
-                <input type="search" id="filterInput" placeholder="Filter requests...">
-            </div>
-            <div class="request-list" id="requestList">
-                <div class="empty-state">
-                    <h3>No requests captured</h3>
-                    <p>Select a host to view requests</p>
-                </div>
-            </div>
-        </div>
+        
+        <h2>Quick Start</h2>
+        <p>Run these commands to build the dashboard:</p>
+        <pre><code>cd mitm_toolkit/dashboard-ui
+pnpm install
+pnpm build</code></pre>
+        
+        <h2>Development Mode</h2>
+        <p>For development with hot reload:</p>
+        <pre><code>cd mitm_toolkit/dashboard-ui
+pnpm dev</code></pre>
+        <p>Then access the dashboard at <strong>http://localhost:3000</strong></p>
+        
+        <p class="note">Note: After building, restart the dashboard command to see the new UI.</p>
     </div>
-
-    <script>
-        let ws;
-        let currentHost = null;
-        let allRequests = [];
-        
-        function connect() {
-            ws = new WebSocket('ws://localhost:8000/ws');
-            
-            ws.onopen = () => {
-                console.log('Connected to dashboard');
-            };
-            
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                handleMessage(data);
-            };
-            
-            ws.onclose = () => {
-                console.log('Disconnected. Reconnecting...');
-                setTimeout(connect, 2000);
-            };
-        }
-        
-        function handleMessage(data) {
-            switch(data.type) {
-                case 'initial':
-                    renderHosts(data.hosts);
-                    break;
-                case 'requests':
-                    renderRequests(data.requests);
-                    break;
-                case 'new_request':
-                    if (data.request.host === currentHost) {
-                        addRequest(data.request);
-                    }
-                    updateStats();
-                    break;
-            }
-        }
-        
-        function renderHosts(hosts) {
-            const list = document.getElementById('hostList');
-            list.innerHTML = hosts.map(host => 
-                `<li class="host-item" data-host="${host}">${host}</li>`
-            ).join('');
-            
-            list.querySelectorAll('.host-item').forEach(item => {
-                item.addEventListener('click', () => selectHost(item.dataset.host));
-            });
-        }
-        
-        function selectHost(host) {
-            currentHost = host;
-            document.querySelectorAll('.host-item').forEach(item => {
-                item.classList.toggle('active', item.dataset.host === host);
-            });
-            document.getElementById('activeHost').textContent = host;
-            
-            ws.send(JSON.stringify({
-                type: 'get_requests',
-                host: host
-            }));
-        }
-        
-        function renderRequests(requests) {
-            allRequests = requests;
-            const list = document.getElementById('requestList');
-            
-            if (requests.length === 0) {
-                list.innerHTML = `
-                    <div class="empty-state">
-                        <h3>No requests for ${currentHost}</h3>
-                    </div>
-                `;
-                return;
-            }
-            
-            list.innerHTML = requests.map(req => createRequestElement(req)).join('');
-            updateStats();
-        }
-        
-        function createRequestElement(req) {
-            const statusClass = req.status_code >= 200 && req.status_code < 300 ? 'success' : 'error';
-            const time = req.response_time ? `${req.response_time.toFixed(0)}ms` : '-';
-            
-            return `
-                <div class="request-item" data-id="${req.id}">
-                    <span class="method ${req.method}">${req.method}</span>
-                    <span class="path">${req.path}</span>
-                    ${req.status_code ? `<span class="status ${statusClass}">${req.status_code}</span>` : ''}
-                    <span class="time">${time}</span>
-                </div>
-            `;
-        }
-        
-        function addRequest(request) {
-            allRequests.unshift(request);
-            const list = document.getElementById('requestList');
-            const newElement = document.createElement('div');
-            newElement.innerHTML = createRequestElement(request);
-            list.insertBefore(newElement.firstElementChild, list.firstChild);
-        }
-        
-        function updateStats() {
-            document.getElementById('totalRequests').textContent = allRequests.length;
-            
-            const times = allRequests.filter(r => r.response_time).map(r => r.response_time);
-            if (times.length > 0) {
-                const avg = times.reduce((a, b) => a + b, 0) / times.length;
-                document.getElementById('avgTime').textContent = `${avg.toFixed(0)}ms`;
-            }
-        }
-        
-        // Filter functionality
-        document.getElementById('filterInput').addEventListener('input', (e) => {
-            const filter = e.target.value.toLowerCase();
-            const filtered = filter 
-                ? allRequests.filter(r => r.path.toLowerCase().includes(filter))
-                : allRequests;
-            
-            const list = document.getElementById('requestList');
-            list.innerHTML = filtered.map(req => createRequestElement(req)).join('');
-        });
-        
-        connect();
-    </script>
 </body>
 </html>"""
     
