@@ -61,8 +61,46 @@ class DashboardServer:
         
         @self.app.get("/api/request/{request_id}")
         async def get_request_detail(request_id: str):
-            # This would need to be implemented in storage
-            return {"request_id": request_id}
+            request = self.storage.get_request_by_id(request_id)
+            if not request:
+                return {"error": "Request not found"}
+            
+            response = self.storage.get_response_for_request(request_id)
+            
+            return {
+                "request": {
+                    "id": request.id,
+                    "method": request.method.value,
+                    "url": request.url,
+                    "path": request.path,
+                    "headers": dict(request.headers),
+                    "body": request.body_decoded,
+                    "query_params": request.query_params,
+                    "timestamp": request.timestamp.isoformat()
+                },
+                "response": {
+                    "status_code": response.status_code,
+                    "headers": dict(response.headers),
+                    "body": response.body_decoded,
+                    "response_time": response.response_time_ms
+                } if response else None
+            }
+        
+        @self.app.get("/api/endpoint-variations/{host}/{path:path}")
+        async def get_endpoint_variations(host: str, path: str, method: str = "GET"):
+            variations = self.storage.get_endpoint_variations(host, "/" + path, method)
+            return {
+                "endpoint": f"{method} /{path}",
+                "variations": [
+                    {
+                        "id": v["request"].id,
+                        "request_preview": (v["request"].body_decoded or "")[:100] if v["request"] else "",
+                        "response_status": v["response"].status_code if v["response"] else None,
+                        "timestamp": v["request"].timestamp.isoformat() if v["request"] else None
+                    }
+                    for v in variations
+                ]
+            }
     
     async def handle_websocket_message(self, websocket: WebSocket, data: Dict):
         msg_type = data.get("type")
@@ -110,6 +148,13 @@ class DashboardServer:
         }
     
     def get_dashboard_html(self) -> str:
+        # Load the external template
+        from pathlib import Path
+        template_path = Path(__file__).parent / "dashboard_template.html"
+        if template_path.exists():
+            return template_path.read_text()
+        
+        # Fallback to inline HTML if template not found
         return """<!DOCTYPE html>
 <html>
 <head>

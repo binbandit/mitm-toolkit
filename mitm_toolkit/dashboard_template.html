@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MITM Toolkit Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0a0a0a; 
+            color: #e0e0e0;
+        }
+        .container { display: flex; height: 100vh; }
+        
+        /* Sidebar */
+        .sidebar { 
+            width: 250px; 
+            background: #111; 
+            border-right: 1px solid #333;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+        
+        /* Main Content */
+        .main { 
+            flex: 1; 
+            display: flex; 
+            overflow: hidden;
+        }
+        
+        /* Request List */
+        .request-list-container {
+            width: 400px;
+            border-right: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            background: #0f0f0f;
+        }
+        
+        /* Detail Panel */
+        .detail-panel {
+            flex: 1;
+            overflow-y: auto;
+            background: #0a0a0a;
+            padding: 20px;
+        }
+        
+        .header { 
+            padding: 20px; 
+            background: #111; 
+            border-bottom: 1px solid #333;
+        }
+        
+        h1, h2, h3 { color: #fff; }
+        h2 { font-size: 18px; margin-bottom: 15px; }
+        h3 { font-size: 14px; margin-bottom: 10px; color: #4CAF50; }
+        
+        .host-list { list-style: none; }
+        .host-item { 
+            padding: 12px 16px; 
+            cursor: pointer; 
+            border-bottom: 1px solid #222;
+            transition: background 0.2s;
+        }
+        .host-item:hover { background: #1a1a1a; }
+        .host-item.active { background: #2a2a2a; color: #4CAF50; }
+        
+        .request-list { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 10px;
+        }
+        
+        .request-item {
+            padding: 12px;
+            background: #1a1a1a;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        
+        .request-item:hover { 
+            background: #222;
+            border-color: #4CAF50;
+        }
+        
+        .request-item.selected {
+            background: #2a2a2a;
+            border-color: #4CAF50;
+        }
+        
+        .request-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .method {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-right: 12px;
+            font-size: 12px;
+        }
+        .method.GET { background: #4CAF50; color: white; }
+        .method.POST { background: #2196F3; color: white; }
+        .method.PUT { background: #FF9800; color: white; }
+        .method.DELETE { background: #f44336; color: white; }
+        .method.PATCH { background: #9C27B0; color: white; }
+        
+        .path { 
+            flex: 1; 
+            font-family: monospace; 
+            font-size: 13px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .status.success { background: #4CAF50; color: white; }
+        .status.error { background: #f44336; color: white; }
+        
+        .request-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 11px;
+            color: #666;
+        }
+        
+        .time { color: #666; font-size: 12px; }
+        
+        /* Detail Panel Styles */
+        .detail-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .tab:hover { color: #fff; }
+        .tab.active {
+            color: #4CAF50;
+            border-bottom-color: #4CAF50;
+        }
+        
+        .detail-content {
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .detail-section {
+            margin-bottom: 25px;
+        }
+        
+        .detail-section h4 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        pre {
+            background: #0a0a0a;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.5;
+            border: 1px solid #333;
+        }
+        
+        .headers-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .headers-table td {
+            padding: 8px;
+            border-bottom: 1px solid #333;
+            font-size: 13px;
+        }
+        
+        .headers-table td:first-child {
+            color: #4CAF50;
+            font-weight: bold;
+            width: 200px;
+        }
+        
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666;
+        }
+        
+        .filter-bar {
+            padding: 16px;
+            background: #1a1a1a;
+            border-bottom: 1px solid #333;
+        }
+        
+        input[type="search"] {
+            width: 100%;
+            padding: 8px 12px;
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+        
+        .variation-selector {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #0a0a0a;
+            border-radius: 4px;
+            border: 1px solid #333;
+        }
+        
+        .variation-selector select {
+            width: 100%;
+            padding: 8px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            border: 1px solid #333;
+            border-radius: 4px;
+        }
+        
+        .json-viewer {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+        }
+        
+        .json-key { color: #FF6B6B; }
+        .json-string { color: #4ECDC4; }
+        .json-number { color: #95E1D3; }
+        .json-boolean { color: #F38181; }
+        .json-null { color: #AA96DA; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="header">
+                <h2>Hosts</h2>
+            </div>
+            <ul class="host-list" id="hostList"></ul>
+        </div>
+        
+        <div class="main">
+            <div class="request-list-container">
+                <div class="header">
+                    <h2 id="currentHost">Select a host</h2>
+                </div>
+                <div class="filter-bar">
+                    <input type="search" id="filterInput" placeholder="Filter requests...">
+                </div>
+                <div class="request-list" id="requestList">
+                    <div class="empty-state">
+                        <h3>No requests</h3>
+                        <p>Select a host to view requests</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-panel" id="detailPanel">
+                <div class="empty-state">
+                    <h3>Select a request</h3>
+                    <p>Click on a request to view details</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let currentHost = null;
+        let currentRequest = null;
+        let allRequests = [];
+        let requestDetails = {};
+        
+        function connect() {
+            ws = new WebSocket('ws://localhost:8000/ws');
+            
+            ws.onopen = () => {
+                console.log('Connected to dashboard');
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+            
+            ws.onclose = () => {
+                console.log('Disconnected. Reconnecting...');
+                setTimeout(connect, 2000);
+            };
+        }
+        
+        function handleMessage(data) {
+            switch(data.type) {
+                case 'initial':
+                    renderHosts(data.hosts);
+                    break;
+                case 'requests':
+                    renderRequests(data.requests);
+                    break;
+                case 'new_request':
+                    if (data.request.host === currentHost) {
+                        addRequest(data.request);
+                    }
+                    break;
+            }
+        }
+        
+        function renderHosts(hosts) {
+            const list = document.getElementById('hostList');
+            list.innerHTML = hosts.map(host => 
+                `<li class="host-item" data-host="${host}">${host}</li>`
+            ).join('');
+            
+            list.querySelectorAll('.host-item').forEach(item => {
+                item.addEventListener('click', () => selectHost(item.dataset.host));
+            });
+        }
+        
+        function selectHost(host) {
+            currentHost = host;
+            currentRequest = null;
+            document.querySelectorAll('.host-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.host === host);
+            });
+            document.getElementById('currentHost').textContent = host;
+            
+            // Clear detail panel
+            document.getElementById('detailPanel').innerHTML = `
+                <div class="empty-state">
+                    <h3>Select a request</h3>
+                    <p>Click on a request to view details</p>
+                </div>
+            `;
+            
+            ws.send(JSON.stringify({
+                type: 'get_requests',
+                host: host
+            }));
+        }
+        
+        function renderRequests(requests) {
+            allRequests = requests;
+            const list = document.getElementById('requestList');
+            
+            if (requests.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No requests for ${currentHost}</h3>
+                    </div>
+                `;
+                return;
+            }
+            
+            list.innerHTML = requests.map(req => createRequestElement(req)).join('');
+            
+            // Add click handlers
+            list.querySelectorAll('.request-item').forEach(item => {
+                item.addEventListener('click', () => selectRequest(item.dataset.id));
+            });
+        }
+        
+        function createRequestElement(req) {
+            const statusClass = req.status_code >= 200 && req.status_code < 300 ? 'success' : 'error';
+            const time = req.response_time ? `${req.response_time.toFixed(0)}ms` : '-';
+            const timestamp = new Date(req.timestamp).toLocaleTimeString();
+            
+            return `
+                <div class="request-item" data-id="${req.id}">
+                    <div class="request-header">
+                        <span class="method ${req.method}">${req.method}</span>
+                        <span class="path">${req.path}</span>
+                        ${req.status_code ? `<span class="status ${statusClass}">${req.status_code}</span>` : ''}
+                    </div>
+                    <div class="request-meta">
+                        <span>${timestamp}</span>
+                        <span>${time}</span>
+                    </div>
+                </div>
+            `;
+        }
+        
+        async function selectRequest(requestId) {
+            currentRequest = requestId;
+            
+            // Highlight selected request
+            document.querySelectorAll('.request-item').forEach(item => {
+                item.classList.toggle('selected', item.dataset.id === requestId);
+            });
+            
+            // Fetch request details
+            try {
+                const response = await fetch(`/api/request/${requestId}`);
+                const data = await response.json();
+                requestDetails[requestId] = data;
+                showRequestDetails(data);
+            } catch (error) {
+                console.error('Failed to fetch request details:', error);
+            }
+        }
+        
+        function showRequestDetails(data) {
+            const panel = document.getElementById('detailPanel');
+            
+            panel.innerHTML = `
+                <div class="detail-tabs">
+                    <button class="tab active" onclick="showTab('request')">Request</button>
+                    <button class="tab" onclick="showTab('response')">Response</button>
+                    <button class="tab" onclick="showTab('headers')">Headers</button>
+                </div>
+                
+                <div id="tabContent">
+                    ${renderRequestTab(data.request)}
+                </div>
+            `;
+            
+            // Store data for tab switching
+            window.currentDetailData = data;
+        }
+        
+        function showTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(t => {
+                t.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update content
+            const content = document.getElementById('tabContent');
+            const data = window.currentDetailData;
+            
+            switch(tab) {
+                case 'request':
+                    content.innerHTML = renderRequestTab(data.request);
+                    break;
+                case 'response':
+                    content.innerHTML = renderResponseTab(data.response);
+                    break;
+                case 'headers':
+                    content.innerHTML = renderHeadersTab(data.request, data.response);
+                    break;
+            }
+        }
+        
+        function renderRequestTab(request) {
+            return `
+                <div class="detail-content">
+                    <div class="detail-section">
+                        <h4>URL</h4>
+                        <pre>${request.url}</pre>
+                    </div>
+                    
+                    ${request.query_params && Object.keys(request.query_params).length > 0 ? `
+                    <div class="detail-section">
+                        <h4>Query Parameters</h4>
+                        <pre>${formatJSON(request.query_params)}</pre>
+                    </div>
+                    ` : ''}
+                    
+                    ${request.body ? `
+                    <div class="detail-section">
+                        <h4>Request Body</h4>
+                        <pre>${formatBody(request.body)}</pre>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+        
+        function renderResponseTab(response) {
+            if (!response) {
+                return `
+                    <div class="detail-content">
+                        <div class="empty-state">
+                            <p>No response data</p>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="detail-content">
+                    <div class="detail-section">
+                        <h4>Status</h4>
+                        <pre>${response.status_code}</pre>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h4>Response Time</h4>
+                        <pre>${response.response_time ? response.response_time.toFixed(2) + ' ms' : 'N/A'}</pre>
+                    </div>
+                    
+                    ${response.body ? `
+                    <div class="detail-section">
+                        <h4>Response Body</h4>
+                        <pre>${formatBody(response.body)}</pre>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+        
+        function renderHeadersTab(request, response) {
+            return `
+                <div class="detail-content">
+                    <div class="detail-section">
+                        <h4>Request Headers</h4>
+                        <table class="headers-table">
+                            ${Object.entries(request.headers).map(([key, value]) => `
+                                <tr>
+                                    <td>${key}</td>
+                                    <td>${value}</td>
+                                </tr>
+                            `).join('')}
+                        </table>
+                    </div>
+                    
+                    ${response ? `
+                    <div class="detail-section">
+                        <h4>Response Headers</h4>
+                        <table class="headers-table">
+                            ${Object.entries(response.headers).map(([key, value]) => `
+                                <tr>
+                                    <td>${key}</td>
+                                    <td>${value}</td>
+                                </tr>
+                            `).join('')}
+                        </table>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+        
+        function formatBody(body) {
+            try {
+                const parsed = JSON.parse(body);
+                return formatJSON(parsed);
+            } catch {
+                return body || '';
+            }
+        }
+        
+        function formatJSON(obj) {
+            return JSON.stringify(obj, null, 2);
+        }
+        
+        // Filter functionality
+        document.getElementById('filterInput').addEventListener('input', (e) => {
+            const filter = e.target.value.toLowerCase();
+            const filtered = filter 
+                ? allRequests.filter(r => 
+                    r.path.toLowerCase().includes(filter) ||
+                    r.method.toLowerCase().includes(filter))
+                : allRequests;
+            
+            renderRequests(filtered);
+        });
+        
+        connect();
+    </script>
+</body>
+</html>
