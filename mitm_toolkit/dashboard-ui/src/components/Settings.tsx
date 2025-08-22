@@ -50,6 +50,7 @@ export function Settings() {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
+          'X-Confirm-Clear': 'CONFIRM_CLEAR_ALL_DATA',
         },
       })
       const data = await response.json()

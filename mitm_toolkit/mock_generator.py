@@ -54,7 +54,11 @@ class MockServerGenerator:
         # Collect all endpoint variations with actual data
         endpoint_data = []
         for endpoint in service_profile.endpoints:
-            examples = self._get_endpoint_examples(service_profile.host, endpoint)
+            # Extract host from base_url
+            from urllib.parse import urlparse
+            parsed_url = urlparse(service_profile.base_url)
+            host = parsed_url.netloc
+            examples = self._get_endpoint_examples(host, endpoint)
             variations = []
             
             for example in examples[:10]:  # Limit to 10 examples
@@ -118,7 +122,8 @@ def find_matching_response(method: str, path: str, body: Any, query_params: Dict
                     var_body = json.loads(var["requestBody"])
                     if body == var_body:
                         return var
-                except:
+                except (json.JSONDecodeError, TypeError, AttributeError):
+                    # Request body couldn't be parsed as JSON
                     pass
             elif str(body) == str(var["requestBody"]):
                 return var
@@ -146,12 +151,13 @@ async def {{ endpoint.function_name }}(
     if request and request.method in ["POST", "PUT", "PATCH"]:
         try:
             body = await request.json()
-        except:
+        except (json.JSONDecodeError, ValueError):
             try:
                 body_bytes = await request.body()
-                body = body_bytes.decode('utf-8') if body_bytes else None
-            except:
-                pass
+                body = body_bytes.decode('utf-8', errors='replace') if body_bytes else None
+            except Exception as e:
+                # Could not decode body
+                body = None
     
     # Build query params dict
     query_params = {}
@@ -172,7 +178,8 @@ async def {{ endpoint.function_name }}(
         if isinstance(response_body, str):
             try:
                 response_body = json.loads(response_body)
-            except:
+            except (json.JSONDecodeError, TypeError):
+                # Keep response_body as string if not valid JSON
                 pass
         
         return JSONResponse(

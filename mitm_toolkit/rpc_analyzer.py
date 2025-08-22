@@ -117,7 +117,8 @@ class RPCAnalyzer:
                     resp_body = json.loads(response.body_decoded) if isinstance(response.body_decoded, str) else response.body_decoded
                     if isinstance(resp_body, dict):
                         result = resp_body.get("result", resp_body.get("error"))
-                except:
+                except (json.JSONDecodeError, AttributeError, TypeError):
+                    # Response body couldn't be parsed as JSON
                     pass
                     
             return method, params, result

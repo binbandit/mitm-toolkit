@@ -82,8 +82,8 @@ class DashboardServer:
             return {"hosts": self.storage.get_all_hosts()}
         
         @self.app.get("/api/requests/{host}")
-        async def get_requests(host: str, limit: int = 100):
-            requests = self.storage.get_requests_by_host(host)[:limit]
+        async def get_requests(host: str, limit: int = 100, offset: int = 0):
+            requests = self.storage.get_requests_by_host(host, limit=limit, offset=offset)
             return {
                 "requests": [self._request_to_dict(r) for r in requests]
             }
@@ -148,7 +148,7 @@ class DashboardServer:
         @self.app.get("/api/rpc/{host}")
         async def get_rpc_calls(host: str):
             """Get all RPC calls for a host."""
-            requests = self.storage.get_requests_by_host(host)
+            requests = self.storage.get_requests_by_host(host, limit=500)  # Get more for RPC analysis
             rpc_calls = []
             
             for request in requests:
@@ -171,8 +171,13 @@ class DashboardServer:
             return {"rpc_calls": rpc_calls}
         
         @self.app.delete("/api/clear")
-        async def clear_database():
-            """Clear all captured data."""
+        async def clear_database(request: Request):
+            """Clear all captured data - requires confirmation token."""
+            # Simple token check - in production, use proper authentication
+            auth_header = request.headers.get("X-Confirm-Clear")
+            if auth_header != "CONFIRM_CLEAR_ALL_DATA":
+                return {"success": False, "error": "Confirmation token required"}
+            
             try:
                 self.storage.clear_all_data()
                 return {"success": True, "message": "All data cleared"}
@@ -184,7 +189,7 @@ class DashboardServer:
         
         if msg_type == "get_requests":
             host = data.get("host")
-            requests = self.storage.get_requests_by_host(host)[:50]
+            requests = self.storage.get_requests_by_host(host, limit=50)
             await websocket.send_json({
                 "type": "requests",
                 "host": host,

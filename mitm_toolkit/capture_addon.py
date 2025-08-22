@@ -288,10 +288,12 @@ class IntelligentCaptureAddon:
                 return str(parse_qs(body.decode("utf-8")))
             else:
                 return None
-        except Exception:
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            # Try plain text decode as fallback
             try:
-                return body.decode("utf-8")
-            except Exception:
+                return body.decode("utf-8", errors="replace")
+            except Exception as decode_error:
+                ctx.log.debug(f"Failed to decode body: {decode_error}")
                 return None
     
     def _detect_rpc_call(self, flow: http.HTTPFlow, body_decoded: Optional[str]) -> tuple[bool, dict]:

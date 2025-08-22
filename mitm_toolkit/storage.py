@@ -68,9 +68,13 @@ class StorageBackend:
                 )
             """)
             
+            # Create indexes for better query performance
             conn.execute("CREATE INDEX IF NOT EXISTS idx_requests_host ON requests(host)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_requests_timestamp ON requests(timestamp DESC)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_requests_path ON requests(path)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_requests_method ON requests(method)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_responses_request_id ON responses(request_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_responses_status ON responses(status_code)")
 
     @contextmanager
     def _get_connection(self):
@@ -123,14 +127,20 @@ class StorageBackend:
                 response.response_time_ms
             ))
 
-    def get_requests_by_host(self, host: str) -> List[CapturedRequest]:
+    def get_requests_by_host(self, host: str, limit: int = 1000, offset: int = 0) -> List[CapturedRequest]:
         with self._get_connection() as conn:
-            rows = conn.execute("SELECT * FROM requests WHERE host = ? ORDER BY timestamp DESC", (host,))
+            rows = conn.execute(
+                "SELECT * FROM requests WHERE host = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?", 
+                (host, limit, offset)
+            )
             return [self._row_to_request(row) for row in rows]
 
-    def get_requests_by_pattern(self, pattern: str) -> List[CapturedRequest]:
+    def get_requests_by_pattern(self, pattern: str, limit: int = 1000) -> List[CapturedRequest]:
         with self._get_connection() as conn:
-            rows = conn.execute("SELECT * FROM requests WHERE path LIKE ? ORDER BY timestamp DESC", (f"%{pattern}%",))
+            rows = conn.execute(
+                "SELECT * FROM requests WHERE path LIKE ? ORDER BY timestamp DESC LIMIT ?", 
+                (f"%{pattern}%", limit)
+            )
             return [self._row_to_request(row) for row in rows]
     
     def get_request_by_id(self, request_id: str) -> Optional[CapturedRequest]:
