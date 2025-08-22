@@ -140,14 +140,32 @@ Edit `mock_server.py` to customize responses and behavior.
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
         
+        # Get actual request/response examples for each endpoint
+        endpoint_examples = {}
+        for endpoint in service_profile.endpoints:
+            # Get real examples from storage
+            path = endpoint.path_pattern.replace("{id}", ":id")
+            variations = []
+            # Store examples for this endpoint
+            endpoint_examples[f"{endpoint.method.value}:{endpoint.path_pattern}"] = variations
+        
         express_template = Template("""// Auto-generated mock server for {{ service_name }}
 
 const express = require('express');
+const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Middleware
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Request logging
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
+    next();
+});
 
 // Common headers middleware
 app.use((req, res, next) => {
@@ -158,21 +176,94 @@ app.use((req, res, next) => {
     next();
 });
 
+// Response cache for matching request bodies to responses
+const responseCache = new Map();
+
 {% for endpoint in endpoints %}
+// {{ endpoint.method }} {{ endpoint.path_pattern }}
 app.{{ endpoint.method.lower() }}('{{ endpoint.path_pattern_express }}', (req, res) => {
-    {% if endpoint.response_example %}
-    const responseData = {{ endpoint.response_example }};
-    {% else %}
-    const responseData = { message: 'Mock response for {{ endpoint.path_pattern }}' };
+    console.log('Request to {{ endpoint.path_pattern }}:', {
+        params: req.params,
+        query: req.query,
+        body: req.body
+    });
+    
+    {% if endpoint.response_variations %}
+    // Multiple response variations based on request
+    const requestKey = JSON.stringify({
+        body: req.body,
+        query: req.query,
+        params: req.params
+    });
+    
+    // Check if we've seen this exact request before
+    if (responseCache.has(requestKey)) {
+        return res.status(200).json(responseCache.get(requestKey));
+    }
+    
+    // Response variations
+    const variations = {{ endpoint.response_variations }};
+    
+    // Try to match based on request body
+    for (const variation of variations) {
+        if (variation.requestBody && JSON.stringify(req.body) === JSON.stringify(variation.requestBody)) {
+            responseCache.set(requestKey, variation.responseBody);
+            return res.status(variation.statusCode || 200).json(variation.responseBody);
+        }
+    }
+    
+    // Default to first variation if no match
+    if (variations.length > 0) {
+        const defaultResponse = variations[0];
+        return res.status(defaultResponse.statusCode || 200).json(defaultResponse.responseBody);
+    }
     {% endif %}
     
-    res.json(responseData);
+    {% if endpoint.response_example %}
+    // Static response
+    const responseData = {{ endpoint.response_example }};
+    res.status(200).json(responseData);
+    {% else %}
+    // Default mock response
+    res.status(200).json({ 
+        message: 'Mock response for {{ endpoint.path_pattern }}',
+        method: '{{ endpoint.method }}',
+        params: req.params,
+        query: req.query
+    });
+    {% endif %}
 });
 
 {% endfor %}
 
+// 404 handler
+app.use((req, res) => {
+    res.status(404).json({
+        error: 'Not Found',
+        message: `Route ${req.method} ${req.path} not found`,
+        availableEndpoints: [
+            {% for endpoint in endpoints %}
+            '{{ endpoint.method }} {{ endpoint.path_pattern }}',
+            {% endfor %}
+        ]
+    });
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({
+        error: 'Internal Server Error',
+        message: err.message
+    });
+});
+
 app.listen(port, () => {
-    console.log(`Mock server for {{ service_name }} running on port ${port}`);
+    console.log(`Mock server for {{ service_name }} running on http://localhost:${port}`);
+    console.log('Available endpoints:');
+    {% for endpoint in endpoints %}
+    console.log('  {{ endpoint.method }} http://localhost:' + port + '{{ endpoint.path_pattern }}');
+    {% endfor %}
 });
 """)
         
@@ -196,15 +287,20 @@ app.listen(port, () => {
         mock_file.write_text(mock_code)
         
         package_json = {
-            "name": f"{service_profile.name.lower()}-mock",
+            "name": f"{service_profile.name.lower().replace('.', '-')}-mock",
             "version": "1.0.0",
             "description": f"Mock server for {service_profile.name}",
             "main": "server.js",
             "scripts": {
-                "start": "node server.js"
+                "start": "node server.js",
+                "dev": "nodemon server.js"
             },
             "dependencies": {
-                "express": "^4.18.0"
+                "express": "^4.18.0",
+                "cors": "^2.8.5"
+            },
+            "devDependencies": {
+                "nodemon": "^3.0.0"
             }
         }
         
