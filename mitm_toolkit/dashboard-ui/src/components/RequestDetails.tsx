@@ -6,8 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { ScrollArea } from './ui/scroll-area'
-import { Copy, RefreshCw, Terminal, Download, Clock, Database } from 'lucide-react'
+import { Copy, RefreshCw, Terminal, Download, Clock, Database, Shield } from 'lucide-react'
 import { format } from 'date-fns'
+import { SecurityAnalyzer } from './SecurityAnalyzer'
 
 interface RequestDetailsProps {
   requestId: string
@@ -263,10 +264,14 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
       {/* Content */}
       <ScrollArea className="flex-1">
         <Tabs defaultValue="request" className="p-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="request">Request</TabsTrigger>
             <TabsTrigger value="response">Response</TabsTrigger>
             <TabsTrigger value="headers">Headers</TabsTrigger>
+            <TabsTrigger value="security" className="flex items-center gap-1">
+              <Shield className="w-3 h-3" />
+              Security
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="request" className="space-y-4">
@@ -429,6 +434,10 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          <TabsContent value="security" className="space-y-4">
+            <SecurityAnalyzer request={request} response={response} />
           </TabsContent>
         </Tabs>
       </ScrollArea>

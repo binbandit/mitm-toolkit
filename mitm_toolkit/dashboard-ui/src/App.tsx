@@ -6,6 +6,8 @@ import { StatsBar } from './components/StatsBar'
 import { Settings } from './components/Settings'
 import { PerformanceMetrics } from './components/PerformanceMetrics'
 import { KeyboardShortcuts } from './components/KeyboardShortcuts'
+import { HarExport } from './components/HarExport'
+import { TimelineView } from './components/TimelineView'
 import { useWebSocket } from './hooks/useWebSocket'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { CapturedRequest, Host } from './types'
@@ -14,7 +16,7 @@ import { Input } from './components/ui/input'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './components/ui/tabs'
 import { Badge } from './components/ui/badge'
 import { ScrollArea } from './components/ui/scroll-area'
-import { Search, Activity, BarChart } from 'lucide-react'
+import { Search, Activity, BarChart, Clock } from 'lucide-react'
 
 function App() {
   const [hosts, setHosts] = useState<Host[]>([])
@@ -23,7 +25,7 @@ function App() {
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null)
   const [filterText, setFilterText] = useState('')
   const [viewMode, setViewMode] = useState<'all' | 'http' | 'rpc'>('all')
-  const [activeTab, setActiveTab] = useState<'requests' | 'performance'>('requests')
+  const [activeTab, setActiveTab] = useState<'requests' | 'performance' | 'timeline'>('requests')
   const [stats, setStats] = useState({
     totalRequests: 0,
     rpcCalls: 0,
@@ -204,9 +206,13 @@ function App() {
                   <Activity className="w-4 h-4" />
                   Requests
                 </TabsTrigger>
+                <TabsTrigger value="timeline" className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Timeline
+                </TabsTrigger>
                 <TabsTrigger value="performance" className="flex items-center gap-2">
                   <BarChart className="w-4 h-4" />
-                  Performance
+                  Analytics
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -215,15 +221,21 @@ function App() {
               {/* Request list */}
               <div className="w-1/2 border-r flex flex-col">
                 <div className="p-4 border-b space-y-3">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                    <Input
-                      ref={searchInputRef}
-                      type="search"
-                      placeholder="Filter requests..."
-                      value={filterText}
-                      onChange={(e) => setFilterText(e.target.value)}
-                      className="pl-9"
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                      <Input
+                        ref={searchInputRef}
+                        type="search"
+                        placeholder="Filter requests..."
+                        value={filterText}
+                        onChange={(e) => setFilterText(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
+                    <HarExport 
+                      requests={filteredRequests}
+                      onImport={(imported) => setRequests(prev => [...imported, ...prev])}
                     />
                   </div>
                   
@@ -254,6 +266,17 @@ function App() {
                     Select a request to view details
                   </div>
                 )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="timeline" className="flex-1 p-6 m-0 overflow-auto">
+              <div className="max-w-7xl mx-auto">
+                <h2 className="text-2xl font-bold mb-6">Request Timeline</h2>
+                <TimelineView 
+                  requests={filteredRequests}
+                  onSelectRequest={setSelectedRequest}
+                  selectedRequest={selectedRequest}
+                />
               </div>
             </TabsContent>
 
