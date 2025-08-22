@@ -2,7 +2,7 @@
 
 import re
 from collections import defaultdict
-from typing import List, Dict, Any, Set, Tuple
+from typing import List, Dict, Any, Set, Tuple, Optional
 from urllib.parse import urlparse
 import json
 
