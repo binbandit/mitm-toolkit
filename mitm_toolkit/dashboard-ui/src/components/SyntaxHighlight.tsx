@@ -13,6 +13,7 @@ import 'prismjs/components/prism-python'
 
 // Import a dark theme
 import 'prismjs/themes/prism-tomorrow.css'
+import '../styles/prism-overrides.css'
 
 interface SyntaxHighlightProps {
   code: string
@@ -90,15 +91,15 @@ export function SyntaxHighlight({
   }
   
   return (
-    <div className={`relative group ${className}`}>
+    <div className={`relative group w-full overflow-hidden ${className}`}>
       <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
-        <span className="text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
+        <span className="text-[10px] text-muted-foreground bg-background/80 px-1.5 py-0.5 rounded">
           {detectedLanguage}
         </span>
         <Button
           size="icon"
           variant="ghost"
-          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
           onClick={handleCopy}
         >
           {copied ? (
@@ -109,12 +110,13 @@ export function SyntaxHighlight({
         </Button>
       </div>
       <pre 
-        className="!bg-[#2d2d2d] !text-[#cccccc] p-3 rounded-md overflow-auto" 
+        className="!bg-[#2d2d2d] !text-[#cccccc] p-2 rounded-md overflow-auto !text-[11px] !leading-relaxed max-w-full" 
         style={{ maxHeight, margin: 0 }}
       >
         <code 
           ref={codeRef}
-          className={`language-${detectedLanguage} text-xs block whitespace-pre-wrap break-all`}
+          className={`language-${detectedLanguage} block whitespace-pre-wrap break-all`}
+          style={{ fontSize: 'inherit', lineHeight: 'inherit' }}
         >
           {code}
         </code>
