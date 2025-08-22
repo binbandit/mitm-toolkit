@@ -575,16 +575,16 @@ class MyPlugin(RequestProcessorPlugin):
     name = "MyPlugin"
     version = "1.0.0"
     description = "My custom plugin"
-    
+
     def initialize(self):
         # Setup code
         pass
-    
+
     def process_request(self, request):
         # Modify request
         print(f"Processing: {request.url}")
         return request
-    
+
     def process_response(self, response):
         # Modify response
         return response

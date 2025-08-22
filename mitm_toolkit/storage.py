@@ -124,6 +124,31 @@ class StorageBackend:
         with self._get_connection() as conn:
             rows = conn.execute("SELECT * FROM requests WHERE path LIKE ? ORDER BY timestamp DESC", (f"%{pattern}%",))
             return [self._row_to_request(row) for row in rows]
+    
+    def get_request_by_id(self, request_id: str) -> Optional[CapturedRequest]:
+        with self._get_connection() as conn:
+            row = conn.execute("SELECT * FROM requests WHERE id = ?", (request_id,)).fetchone()
+            return self._row_to_request(row) if row else None
+    
+    def get_endpoint_variations(self, host: str, path: str, method: str) -> List[Dict[str, Any]]:
+        """Get all request/response variations for a specific endpoint."""
+        with self._get_connection() as conn:
+            rows = conn.execute("""
+                SELECT r.*, resp.* FROM requests r
+                LEFT JOIN responses resp ON r.id = resp.request_id
+                WHERE r.host = ? AND r.path = ? AND r.method = ?
+                ORDER BY r.timestamp DESC
+            """, (host, path, method))
+            
+            variations = []
+            for row in rows:
+                request = self._row_to_request(row)
+                response = self.get_response_for_request(request.id)
+                variations.append({
+                    "request": request,
+                    "response": response
+                })
+            return variations
 
     def get_response_for_request(self, request_id: str) -> Optional[CapturedResponse]:
         with self._get_connection() as conn:
