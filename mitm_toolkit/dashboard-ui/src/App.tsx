@@ -7,9 +7,8 @@ import { Settings } from './components/Settings'
 import { useWebSocket } from './hooks/useWebSocket'
 import { CapturedRequest, Host } from './types'
 import { api } from './lib/api'
-import { Button } from './components/ui/button'
 import { Input } from './components/ui/input'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs'
+import { Tabs, TabsList, TabsTrigger } from './components/ui/tabs'
 import { Badge } from './components/ui/badge'
 import { ScrollArea } from './components/ui/scroll-area'
 import { Search, Activity } from 'lucide-react'
@@ -88,7 +87,7 @@ function App() {
   useEffect(() => {
     // Fetch initial hosts on mount
     api.getHosts()
-      .then(data => {
+      .then((data: any) => {
         const hostList = data.hosts.map((h: string) => ({ 
           name: h, 
           requestCount: 0,
@@ -96,7 +95,7 @@ function App() {
         }))
         setHosts(hostList)
       })
-      .catch(err => {
+      .catch((err: any) => {
         console.error('Failed to fetch hosts:', err)
       })
   }, [])

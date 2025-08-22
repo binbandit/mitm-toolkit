@@ -6,8 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { ScrollArea } from './ui/scroll-area'
-import { Separator } from './ui/separator'
-import { Copy, ExternalLink, RefreshCw } from 'lucide-react'
+import { Copy, RefreshCw } from 'lucide-react'
 import { format } from 'date-fns'
 
 interface RequestDetailsProps {
@@ -22,12 +21,12 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
   useEffect(() => {
     setLoading(true)
     api.getRequestDetail(requestId)
-      .then(data => {
+      .then((data: any) => {
         setRequest(data.request)
         setResponse(data.response)
         setLoading(false)
       })
-      .catch(err => {
+      .catch((err: any) => {
         console.error('Failed to fetch request details:', err)
         setLoading(false)
       })
