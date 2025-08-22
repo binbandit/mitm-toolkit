@@ -134,9 +134,11 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
       try {
         const jsonData = JSON.parse(resp.body_decoded)
         return (
-          <pre className="text-xs bg-muted p-2 rounded overflow-x-auto max-w-full">
-            <code className="block w-max min-w-full">{JSON.stringify(jsonData, null, 2)}</code>
-          </pre>
+          <div className="relative">
+            <pre className="text-xs bg-muted p-2 rounded overflow-auto max-h-96 max-w-full">
+              <code className="block whitespace-pre-wrap break-all">{JSON.stringify(jsonData, null, 2)}</code>
+            </pre>
+          </div>
         )
       } catch (e) {
         // Not valid JSON, show as text
@@ -152,8 +154,8 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
           </div>
           <details className="cursor-pointer">
             <summary className="text-xs text-muted-foreground">View Source</summary>
-            <pre className="text-xs bg-muted p-2 rounded overflow-x-auto mt-2 max-w-full">
-              <code className="block w-max min-w-full">{resp.body_decoded}</code>
+            <pre className="text-xs bg-muted p-2 rounded overflow-auto mt-2 max-w-full max-h-96">
+              <code className="block whitespace-pre-wrap break-all">{resp.body_decoded}</code>
             </pre>
           </details>
         </div>
@@ -163,35 +165,43 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
     // Handle XML
     if (contentType.includes('text/xml') || contentType.includes('application/xml')) {
       return (
-        <pre className="text-xs bg-muted p-2 rounded overflow-x-auto max-w-full">
-          <code className="block w-max min-w-full">{resp.body_decoded}</code>
-        </pre>
+        <div className="relative">
+          <pre className="text-xs bg-muted p-2 rounded overflow-auto max-w-full max-h-96">
+            <code className="block whitespace-pre-wrap break-all">{resp.body_decoded}</code>
+          </pre>
+        </div>
       )
     }
     
     // Handle CSS
     if (contentType.includes('text/css')) {
       return (
-        <pre className="text-xs bg-muted p-2 rounded overflow-x-auto max-w-full">
-          <code className="block w-max min-w-full">{resp.body_decoded}</code>
-        </pre>
+        <div className="relative">
+          <pre className="text-xs bg-muted p-2 rounded overflow-auto max-w-full max-h-96">
+            <code className="block whitespace-pre-wrap break-all">{resp.body_decoded}</code>
+          </pre>
+        </div>
       )
     }
     
     // Handle JavaScript
     if (contentType.includes('application/javascript') || contentType.includes('text/javascript')) {
       return (
-        <pre className="text-xs bg-muted p-2 rounded overflow-x-auto max-w-full">
-          <code className="block w-max min-w-full">{resp.body_decoded}</code>
-        </pre>
+        <div className="relative">
+          <pre className="text-xs bg-muted p-2 rounded overflow-auto max-w-full max-h-96">
+            <code className="block whitespace-pre-wrap break-all">{resp.body_decoded}</code>
+          </pre>
+        </div>
       )
     }
     
     // Default: show as plain text
     return (
-      <pre className="text-xs bg-muted p-2 rounded overflow-x-auto max-w-full">
-        <code className="block w-max min-w-full">{resp.body_decoded}</code>
-      </pre>
+      <div className="relative">
+        <pre className="text-xs bg-muted p-2 rounded overflow-auto max-w-full max-h-96">
+          <code className="block whitespace-pre-wrap break-all">{resp.body_decoded}</code>
+        </pre>
+      </div>
     )
   }
 
@@ -266,8 +276,8 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
       </div>
 
       {/* Content */}
-      <ScrollArea className="flex-1">
-        <Tabs defaultValue="request" className="p-4">
+      <ScrollArea className="flex-1 w-full">
+        <Tabs defaultValue="request" className="p-4 max-w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="request">Request</TabsTrigger>
             <TabsTrigger value="response">Response</TabsTrigger>
@@ -286,7 +296,7 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
                   {request.url}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4 overflow-x-auto">
+              <CardContent className="space-y-4">
                 <div>
                   <h4 className="text-sm font-medium mb-2">Request ID</h4>
                   <code className="text-xs bg-muted p-2 rounded block overflow-x-auto break-all">
@@ -297,8 +307,8 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
                 {request.query_params && Object.keys(request.query_params).length > 0 && (
                   <div>
                     <h4 className="text-sm font-medium mb-2">Query Parameters</h4>
-                    <pre className="text-xs bg-muted p-2 rounded overflow-x-auto max-w-full">
-                      <code className="block w-max min-w-full">{JSON.stringify(request.query_params, null, 2)}</code>
+                    <pre className="text-xs bg-muted p-2 rounded overflow-auto max-w-full max-h-48">
+                      <code className="block whitespace-pre-wrap break-all">{JSON.stringify(request.query_params, null, 2)}</code>
                     </pre>
                   </div>
                 )}
@@ -312,8 +322,8 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
                         {new Blob([request.body_decoded]).size} bytes
                       </Badge>
                     </div>
-                    <pre className="text-xs bg-muted p-2 rounded overflow-x-auto max-w-full">
-                      <code className="block w-max min-w-full">{request.body_decoded}</code>
+                    <pre className="text-xs bg-muted p-2 rounded overflow-auto max-w-full max-h-96">
+                      <code className="block whitespace-pre-wrap break-all">{request.body_decoded}</code>
                     </pre>
                   </div>
                 )}
