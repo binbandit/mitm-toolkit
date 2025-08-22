@@ -38,7 +38,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./mitm_toolkit/dashboard-ui
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Build dashboard
         working-directory: ./mitm_toolkit/dashboard-ui
