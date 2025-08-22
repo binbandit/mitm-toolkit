@@ -17,6 +17,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from './components/ui/tabs'
 import { Badge } from './components/ui/badge'
 import { ScrollArea } from './components/ui/scroll-area'
 import { Search, Activity, BarChart, Clock } from 'lucide-react'
+import { Toaster } from './components/ui/sonner'
 
 function App() {
   const [hosts, setHosts] = useState<Host[]>([])
@@ -159,11 +160,13 @@ function App() {
   }, [])
 
   return (
-    <div className="flex h-screen bg-background">
+    <>
+      <Toaster position="bottom-right" />
+      <div className="flex h-screen bg-background">
       {/* Sidebar with hosts */}
-      <div className="w-64 border-r bg-sidebar">
-        <div className="p-4 border-b flex items-center justify-between">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
+      <div className="w-64 flex-shrink-0 border-r bg-sidebar">
+        <div className="px-4 py-3 border-b flex items-center justify-between">
+          <h2 className="text-sm font-semibold flex items-center gap-2">
             <Activity className="w-4 h-4" />
             Captured Hosts
             {isConnected && (
@@ -178,7 +181,7 @@ function App() {
             <Settings />
           </div>
         </div>
-        <div className="h-[calc(100vh-4rem)]">
+        <div className="h-[calc(100vh-3.25rem)]">
           <HostList 
             hosts={hosts} 
             selectedHost={selectedHost} 
@@ -300,6 +303,7 @@ function App() {
         </div>
       </div>
     </div>
+    </>
   )
 }
 

@@ -102,7 +102,7 @@ class DashboardServer:
                 "url": request.url,
                 "path": request.path,
                 "headers": dict(request.headers),
-                "body": request.body_decoded,
+                "body_decoded": request.body_decoded,
                 "query_params": request.query_params,
                 "timestamp": request.timestamp.isoformat()
             }
@@ -124,7 +124,7 @@ class DashboardServer:
                 "response": {
                     "status_code": response.status_code,
                     "headers": dict(response.headers),
-                    "body": response.body_decoded,
+                    "body_decoded": response.body_decoded,
                     "response_time": response.response_time_ms
                 } if response else None
             }

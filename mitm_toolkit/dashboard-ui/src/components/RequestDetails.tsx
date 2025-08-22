@@ -9,6 +9,7 @@ import { ScrollArea } from './ui/scroll-area'
 import { Copy, RefreshCw, Terminal, Download, Clock, Database, Shield } from 'lucide-react'
 import { format } from 'date-fns'
 import { SecurityAnalyzer } from './SecurityAnalyzer'
+import { toast } from 'sonner'
 
 interface RequestDetailsProps {
   requestId: string
@@ -34,8 +35,9 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
       })
   }, [requestId])
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text: string, message?: string) => {
     navigator.clipboard.writeText(text)
+    toast.success(message || 'Copied to clipboard')
   }
 
   const copyAsCurl = () => {
@@ -59,6 +61,7 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
     }
     
     navigator.clipboard.writeText(curlCommand)
+    toast.success('cURL command copied to clipboard')
   }
 
   const replayRequest = async () => {
@@ -82,6 +85,7 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
     a.download = `request-${request.id}.json`
     a.click()
     URL.revokeObjectURL(url)
+    toast.success('Request exported successfully')
   }
 
   const renderResponseBody = (resp: CapturedResponse) => {
@@ -229,7 +233,7 @@ export function RequestDetails({ requestId }: RequestDetailsProps) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => copyToClipboard(request.id)}
+              onClick={() => copyToClipboard(request.id, 'Request ID copied')}
               title="Copy request ID"
             >
               <Copy className="w-4 h-4 mr-1" />
