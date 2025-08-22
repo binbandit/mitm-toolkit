@@ -24,11 +24,21 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       return
     }
 
-    // In development, connect to the backend server directly
-    const isDev = import.meta.env.DEV
-    const wsUrl = isDev 
-      ? 'ws://localhost:8000/ws'
-      : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
+    // Get WebSocket URL based on environment and user configuration
+    const getWsUrl = () => {
+      // Check for custom backend URL
+      const customUrl = localStorage.getItem('MITM_BACKEND_URL')
+      if (customUrl) {
+        const wsProtocol = customUrl.startsWith('https') ? 'wss:' : 'ws:'
+        const host = customUrl.replace(/^https?:\/\//, '')
+        return `${wsProtocol}//${host}/ws`
+      }
+      
+      // Always use localhost for WebSocket (even on GitHub Pages)
+      return 'ws://localhost:8000/ws'
+    }
+    
+    const wsUrl = getWsUrl()
     
     const ws = new WebSocket(wsUrl)
     

@@ -3,6 +3,7 @@ import { HostList } from './components/HostList'
 import { RequestList } from './components/RequestList'
 import { RequestDetails } from './components/RequestDetails'
 import { StatsBar } from './components/StatsBar'
+import { Settings } from './components/Settings'
 import { useWebSocket } from './hooks/useWebSocket'
 import { CapturedRequest, Host } from './types'
 import { api } from './lib/api'
@@ -104,17 +105,18 @@ function App() {
     <div className="flex h-screen bg-background">
       {/* Sidebar with hosts */}
       <div className="w-64 border-r bg-sidebar">
-        <div className="p-4 border-b">
+        <div className="p-4 border-b flex items-center justify-between">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Activity className="w-4 h-4" />
             Captured Hosts
             {isConnected && (
-              <Badge variant="outline" className="ml-auto">
+              <Badge variant="outline" className="ml-2">
                 <span className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse" />
                 Live
               </Badge>
             )}
           </h2>
+          <Settings />
         </div>
         <ScrollArea className="h-[calc(100vh-4rem)]">
           <HostList 

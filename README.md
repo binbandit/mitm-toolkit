@@ -4,6 +4,17 @@ A powerful, AI-enhanced toolkit for capturing, analyzing, and mocking HTTP/HTTPS
 
 > ⚠️ **IMPORTANT**: This tool intercepts network traffic. Use it legally and ethically only on systems you own or have explicit permission to test. See [SECURITY.md](SECURITY.md) for security considerations and legal guidelines.
 
+## 🌐 Live Dashboard
+
+**Try the dashboard without installing Node.js!**  
+Visit: **https://binbandit.github.io/mitm-toolkit/**
+
+The hosted dashboard can connect to your locally running MITM Toolkit instance:
+1. Start local capture: `mitm-toolkit capture`
+2. Run dashboard server: `mitm-toolkit dashboard`
+3. Visit the GitHub Pages dashboard
+4. It automatically connects to `localhost:8000`
+
 ## Table of Contents
 
 - [Features](#features)
