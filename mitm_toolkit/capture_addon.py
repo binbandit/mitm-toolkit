@@ -54,6 +54,10 @@ class IntelligentCaptureAddon:
         }
 
     def load(self, loader: Loader):
+        # Log that addon is loading
+        ctx.log.warn("🚀 MITM Toolkit Capture Addon loaded successfully!")
+        ctx.log.warn(f"📁 Database: {self.storage.db_path}")
+        
         loader.add_option(
             name="capture_filter_hosts",
             typespec=str,
@@ -220,10 +224,13 @@ class IntelligentCaptureAddon:
             self.storage.save_request(captured_request)
             self.stats["total_captured"] += 1
             
-            log_msg = f"✓ Captured request: {flow.request.method} {flow.request.pretty_url}"
+            # Log with HTTP version info  
+            http_version = flow.request.http_version or "HTTP/1.1"
+            log_msg = f"✓ Captured {http_version}: {flow.request.method} {flow.request.pretty_url}"
             if is_rpc:
                 log_msg += f" [RPC: {rpc_info.get('type')}]"
-            ctx.log.info(log_msg)
+            # Use warn level so it shows even without verbose mode
+            ctx.log.warn(log_msg)
             
         except Exception as e:
             self.stats["errors"] += 1

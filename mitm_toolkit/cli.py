@@ -43,16 +43,25 @@ def capture(port, filter_hosts, ignore_hosts, filter_patterns, ignore_patterns, 
     
     addon_path = Path(__file__).parent / "capture_addon.py"
     
+    # Verify addon exists
+    if not addon_path.exists():
+        console.print(f"[red]Error: Capture addon not found at {addon_path}[/red]")
+        console.print(f"[yellow]Current directory: {Path.cwd()}[/yellow]")
+        return
+    
+    console.print(f"[dim]Loading addon from: {addon_path}[/dim]")
+    
     cmd = [
         "mitmdump",
         "-p", str(port),
         "-s", str(addon_path),
-        "--set", f"confdir={Path.home() / '.mitmproxy'}"
+        "--set", f"confdir={Path.home() / '.mitmproxy'}",
+        "--set", "http2=true"  # Explicitly enable HTTP/2 support
     ]
     
     # Set verbosity level
     if not verbose:
-        cmd.extend(["--set", "termlog_verbosity=error"])  # Only show errors
+        cmd.extend(["--set", "termlog_verbosity=warn"])  # Show warnings and errors
     else:
         cmd.extend(["--set", "termlog_verbosity=info"])  # Show all logs
     

@@ -13,7 +13,11 @@ from .models import CapturedRequest, CapturedResponse, ServiceProfile
 
 class StorageBackend:
     def __init__(self, db_path: str = "captures.db"):
-        self.db_path = Path(db_path)
+        # Use absolute path to ensure consistency
+        if not Path(db_path).is_absolute():
+            self.db_path = Path.cwd() / db_path
+        else:
+            self.db_path = Path(db_path)
         self._init_db()
 
     def _init_db(self):
@@ -88,26 +92,32 @@ class StorageBackend:
 
     def save_request(self, request: CapturedRequest):
         with self._get_connection() as conn:
-            conn.execute("""
-                INSERT OR REPLACE INTO requests 
-                (id, timestamp, method, url, path, query_params, headers, body, body_decoded, content_type, host, port, scheme, metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                request.id,
-                request.timestamp,
-                request.method.value,
-                request.url,
-                request.path,
-                json.dumps(request.query_params),
-                json.dumps(request.headers),
-                request.body,
-                request.body_decoded,
-                request.content_type.value if request.content_type else None,
-                request.host,
-                request.port,
-                request.scheme,
-                json.dumps(request.metadata) if request.metadata else None
-            ))
+            try:
+                conn.execute("""
+                    INSERT OR REPLACE INTO requests 
+                    (id, timestamp, method, url, path, query_params, headers, body, body_decoded, content_type, host, port, scheme, metadata)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    request.id,
+                    request.timestamp,
+                    request.method.value,
+                    request.url,
+                    request.path,
+                    json.dumps(request.query_params),
+                    json.dumps(request.headers),
+                    request.body,
+                    request.body_decoded,
+                    request.content_type.value if request.content_type else None,
+                    request.host,
+                    request.port,
+                    request.scheme,
+                    json.dumps(request.metadata) if request.metadata else None
+                ))
+                conn.commit()
+            except Exception as e:
+                import sys
+                print(f"ERROR saving request: {e}", file=sys.stderr)
+                raise
 
     def save_response(self, response: CapturedResponse):
         with self._get_connection() as conn:
