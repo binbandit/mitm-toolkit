@@ -77,10 +77,12 @@ class IntelligentCaptureAddon:
         if "capture_filter_hosts" in updates:
             hosts = ctx.options.capture_filter_hosts
             self.filter_hosts = set(h.strip() for h in hosts.split(",") if h.strip())
+            ctx.log.info(f"Filter hosts configured: {self.filter_hosts}")
             
         if "capture_filter_patterns" in updates:
             patterns = ctx.options.capture_filter_patterns
             self.filter_patterns = [re.compile(p.strip()) for p in patterns.split(",") if p.strip()]
+            ctx.log.info(f"Filter patterns configured: {len(self.filter_patterns)} patterns")
             
         if "capture_ignore_hosts" in updates:
             hosts = ctx.options.capture_ignore_hosts
@@ -101,13 +103,16 @@ class IntelligentCaptureAddon:
         url = flow.request.pretty_url
         
         if host in self.ignore_hosts:
+            ctx.log.debug(f"Ignoring host: {host}")
             return False
             
         for pattern in self.ignore_patterns:
             if pattern.search(url):
+                ctx.log.debug(f"Ignoring pattern match: {url}")
                 return False
         
         if self.filter_hosts and host not in self.filter_hosts:
+            ctx.log.debug(f"Host {host} not in filter list {self.filter_hosts}")
             return False
             
         if self.filter_patterns:
