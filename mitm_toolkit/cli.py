@@ -567,35 +567,158 @@ def export_rpc_schema(host, output):
 
 
 @main.command()
+def check_cert():
+    """Check mitmproxy certificate installation status."""
+    import platform
+    import subprocess
+    from pathlib import Path
+    
+    console.print("[bold]Checking mitmproxy certificate status...[/bold]\n")
+    
+    # Check if certificate exists
+    cert_path = Path.home() / ".mitmproxy" / "mitmproxy-ca-cert.pem"
+    
+    if not cert_path.exists():
+        console.print("[red]✗ Certificate not found[/red]")
+        console.print("  Run 'mitm-toolkit capture' once to generate certificates\n")
+        return
+    
+    console.print(f"[green]✓ Certificate found at:[/green] {cert_path}\n")
+    
+    system = platform.system()
+    
+    if system == "Darwin":  # macOS
+        # Check if in keychain
+        result = subprocess.run(
+            ["security", "find-certificate", "-c", "mitmproxy"],
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode == 0:
+            console.print("[green]✓ Certificate is in keychain[/green]")
+            
+            # Check trust settings
+            result = subprocess.run(
+                ["security", "verify-cert", "-c", str(cert_path)],
+                capture_output=True,
+                text=True,
+                errors='ignore'
+            )
+            
+            if "trust settings" in result.stderr.lower() or result.returncode != 0:
+                console.print("[yellow]⚠️  Certificate may not be fully trusted[/yellow]")
+                console.print("  Run 'mitm-toolkit setup' for trust instructions\n")
+            else:
+                console.print("[green]✓ Certificate appears to be trusted[/green]\n")
+        else:
+            console.print("[red]✗ Certificate not in keychain[/red]")
+            console.print("  Run 'mitm-toolkit setup' for installation instructions\n")
+            
+    console.print("[bold]Quick Test:[/bold]")
+    console.print("1. Start capture: mitm-toolkit capture")
+    console.print("2. Set proxy to 127.0.0.1:8080")
+    console.print("3. Visit https://example.com")
+    console.print("4. If you see the page without warnings, certificate is working!\n")
+
+
+@main.command()
 def setup():
-    """Setup instructions for configuring your system."""
+    """Setup instructions and certificate installation helper."""
+    import platform
+    import subprocess
+    from pathlib import Path
+    
     console.print("[bold cyan]MITM Toolkit Setup Instructions[/bold cyan]\n")
     
-    console.print("[yellow]1. Install mitmproxy certificate:[/yellow]")
-    console.print("   - Run: mitm-toolkit capture")
-    console.print("   - Visit: http://mitm.it")
-    console.print("   - Download and install certificate for your system\n")
+    # Check if certificate exists
+    cert_path = Path.home() / ".mitmproxy" / "mitmproxy-ca-cert.pem"
+    
+    if not cert_path.exists():
+        console.print("[yellow]⚠️  mitmproxy certificate not found![/yellow]")
+        console.print("First, start the proxy once to generate certificates:")
+        console.print("  mitm-toolkit capture")
+        console.print("  (Press Ctrl+C after it starts)\n")
+        return
+    
+    console.print("[green]✓ mitmproxy certificate found[/green]\n")
+    
+    system = platform.system()
+    
+    if system == "Darwin":  # macOS
+        console.print("[yellow]Installing certificate on macOS:[/yellow]\n")
+        
+        # Check if already trusted
+        result = subprocess.run(
+            ["security", "find-certificate", "-c", "mitmproxy"],
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode == 0:
+            console.print("[yellow]Certificate is already in keychain. Let's ensure it's trusted:[/yellow]\n")
+        
+        console.print("[bold]Automatic installation:[/bold]")
+        console.print("Run these commands to install and trust the certificate:\n")
+        console.print("[dim]# Add certificate to system keychain[/dim]")
+        console.print(f"sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain {cert_path}\n")
+        
+        console.print("[bold]OR Manual installation:[/bold]")
+        console.print("1. Open Keychain Access app")
+        console.print("2. Select 'System' keychain on the left")
+        console.print("3. Drag and drop the certificate file:")
+        console.print(f"   {cert_path}")
+        console.print("4. Double-click the mitmproxy certificate")
+        console.print("5. Expand 'Trust' section")
+        console.print("6. Set 'When using this certificate' to 'Always Trust'")
+        console.print("7. Close and enter your password to save\n")
+        
+        console.print("[yellow]For iOS devices:[/yellow]")
+        console.print("1. Visit http://mitm.it on your iOS device (while connected to proxy)")
+        console.print("2. Install the certificate profile")
+        console.print("3. Go to Settings > General > About > Certificate Trust Settings")
+        console.print("4. Enable full trust for mitmproxy\n")
+        
+    elif system == "Windows":
+        console.print("[yellow]Installing certificate on Windows:[/yellow]\n")
+        console.print("1. Press Win+R, type 'mmc' and press Enter")
+        console.print("2. File > Add/Remove Snap-in > Certificates > Add")
+        console.print("3. Select 'Computer account' > Next > Finish > OK")
+        console.print("4. Expand Certificates > Trusted Root Certification Authorities")
+        console.print("5. Right-click Certificates > All Tasks > Import")
+        console.print(f"6. Import this file: {cert_path}")
+        console.print("7. Place in 'Trusted Root Certification Authorities'\n")
+        
+    elif system == "Linux":
+        console.print("[yellow]Installing certificate on Linux:[/yellow]\n")
+        console.print("[bold]Ubuntu/Debian:[/bold]")
+        console.print(f"sudo cp {cert_path} /usr/local/share/ca-certificates/mitmproxy.crt")
+        console.print("sudo update-ca-certificates\n")
+        
+        console.print("[bold]Fedora/RHEL:[/bold]")
+        console.print(f"sudo cp {cert_path} /etc/pki/ca-trust/source/anchors/")
+        console.print("sudo update-ca-trust\n")
+        
+        console.print("[bold]Arch:[/bold]")
+        console.print(f"sudo cp {cert_path} /etc/ca-certificates/trust-source/anchors/")
+        console.print("sudo trust extract-compat\n")
     
     console.print("[yellow]2. Configure system proxy:[/yellow]")
-    console.print("   [bold]macOS:[/bold]")
-    console.print("   - System Preferences > Network > Advanced > Proxies")
-    console.print("   - Enable HTTP and HTTPS proxy: 127.0.0.1:8080\n")
-    
-    console.print("   [bold]Windows:[/bold]")
-    console.print("   - Settings > Network & Internet > Proxy")
-    console.print("   - Manual proxy: 127.0.0.1:8080\n")
-    
-    console.print("   [bold]Linux:[/bold]")
-    console.print("   - Export environment variables:")
-    console.print("   - export http_proxy=http://127.0.0.1:8080")
-    console.print("   - export https_proxy=http://127.0.0.1:8080\n")
+    console.print("   HTTP Proxy:  127.0.0.1:8080")
+    console.print("   HTTPS Proxy: 127.0.0.1:8080\n")
     
     console.print("[yellow]3. Start capturing:[/yellow]")
     console.print("   mitm-toolkit capture --filter-hosts api.example.com\n")
     
-    console.print("[yellow]4. Analyze and generate mocks:[/yellow]")
-    console.print("   mitm-toolkit analyze api.example.com")
-    console.print("   mitm-toolkit generate-mock api.example.com")
+    console.print("[yellow]4. View dashboard:[/yellow]")
+    console.print("   mitm-toolkit dashboard\n")
+    
+    console.print("[yellow]Troubleshooting TLS errors:[/yellow]")
+    console.print("If you see 'Client TLS handshake failed' errors:")
+    console.print("• The certificate might not be properly trusted")
+    console.print("• Some apps (like iCloud) may pin certificates and won't work")
+    console.print("• Try restarting the application after installing the certificate")
+    console.print("• For browsers, restart them completely after certificate installation")
 
 
 if __name__ == "__main__":
