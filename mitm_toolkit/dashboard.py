@@ -169,6 +169,15 @@ class DashboardServer:
                     })
             
             return {"rpc_calls": rpc_calls}
+        
+        @self.app.delete("/api/clear")
+        async def clear_database():
+            """Clear all captured data."""
+            try:
+                self.storage.clear_all_data()
+                return {"success": True, "message": "All data cleared"}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
     
     async def handle_websocket_message(self, websocket: WebSocket, data: Dict):
         msg_type = data.get("type")

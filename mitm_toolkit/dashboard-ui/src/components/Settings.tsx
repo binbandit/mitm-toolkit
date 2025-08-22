@@ -11,12 +11,25 @@ import {
   DialogTitle,
   DialogTrigger,
 } from './ui/dialog'
-import { Settings as SettingsIcon } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from './ui/alert-dialog'
+import { Settings as SettingsIcon, Trash2 } from 'lucide-react'
+import { api } from '../lib/api'
 
 export function Settings() {
   const [backendUrl, setBackendUrl] = useState(
     localStorage.getItem('MITM_BACKEND_URL') || 'http://localhost:8000'
   )
+  const [isClearing, setIsClearing] = useState(false)
 
   const handleSave = () => {
     localStorage.setItem('MITM_BACKEND_URL', backendUrl)
@@ -28,6 +41,29 @@ export function Settings() {
     localStorage.removeItem('MITM_BACKEND_URL')
     setBackendUrl('http://localhost:8000')
     window.location.reload()
+  }
+
+  const handleClearData = async () => {
+    setIsClearing(true)
+    try {
+      const response = await fetch(`${backendUrl}/api/clear`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      const data = await response.json()
+      if (data.success) {
+        // Reload to show empty state
+        window.location.reload()
+      } else {
+        alert(`Failed to clear data: ${data.error}`)
+      }
+    } catch (error) {
+      alert(`Failed to clear data: ${error}`)
+    } finally {
+      setIsClearing(false)
+    }
   }
 
   return (
@@ -60,6 +96,44 @@ export function Settings() {
           <div className="text-sm text-muted-foreground">
             <p>The URL where your MITM Toolkit backend is running.</p>
             <p className="mt-2">Default: http://localhost:8000</p>
+          </div>
+          
+          <div className="border-t pt-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-medium">Clear Captured Data</h4>
+                <p className="text-sm text-muted-foreground">
+                  Remove all captured requests and responses from the database
+                </p>
+              </div>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    disabled={isClearing}
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    Clear Data
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete all captured requests and responses from the database.
+                      This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleClearData}>
+                      Clear All Data
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
         </div>
         <DialogFooter>

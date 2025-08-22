@@ -167,6 +167,14 @@ class StorageBackend:
         with self._get_connection() as conn:
             rows = conn.execute("SELECT DISTINCT host FROM requests ORDER BY host")
             return [row[0] for row in rows]
+    
+    def clear_all_data(self):
+        """Clear all captured data from the database."""
+        with self._get_connection() as conn:
+            conn.execute("DELETE FROM responses")
+            conn.execute("DELETE FROM requests")
+            conn.commit()
+            return True
 
     def save_service_profile(self, profile: ServiceProfile):
         with self._get_connection() as conn:
