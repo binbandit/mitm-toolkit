@@ -126,19 +126,30 @@ class IntelligentCaptureAddon:
                 ctx.log.debug(f"Ignoring pattern match: {url}")
                 return False
         
-        # Check filter list (with subdomain matching)
+        # If no filters are specified, capture everything
+        if not self.filter_hosts and not self.filter_patterns:
+            return True
+        
+        # If filters are specified, check if request matches
+        matches_host = True
+        matches_pattern = True
+        
+        # Check host filter if specified
         if self.filter_hosts:
-            if not self._matches_host_filter(host, self.filter_hosts):
+            matches_host = self._matches_host_filter(host, self.filter_hosts)
+            if not matches_host:
                 ctx.log.debug(f"Host {host} not in filter list {self.filter_hosts}")
-                return False
-            
+        
+        # Check pattern filter if specified  
         if self.filter_patterns:
+            matches_pattern = False
             for pattern in self.filter_patterns:
                 if pattern.search(url):
-                    return True
-            return False
-            
-        return True
+                    matches_pattern = True
+                    break
+        
+        # Must match all specified filter types
+        return matches_host and matches_pattern
 
     def request(self, flow: http.HTTPFlow):
         if not self.should_capture(flow):
