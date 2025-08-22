@@ -101,6 +101,31 @@ class DashboardServer:
                     for v in variations
                 ]
             }
+        
+        @self.app.get("/api/rpc/{host}")
+        async def get_rpc_calls(host: str):
+            """Get all RPC calls for a host."""
+            requests = self.storage.get_requests_by_host(host)
+            rpc_calls = []
+            
+            for request in requests:
+                if request.metadata and "rpc" in request.metadata:
+                    response = self.storage.get_response_for_request(request.id)
+                    rpc_info = request.metadata["rpc"]
+                    
+                    rpc_calls.append({
+                        "id": request.id,
+                        "timestamp": request.timestamp.isoformat(),
+                        "type": rpc_info.get("type", "unknown"),
+                        "method": rpc_info.get("method") or (rpc_info.get("methods", ["unknown"])[0] if rpc_info.get("batch") else "unknown"),
+                        "batch": rpc_info.get("batch", False),
+                        "batch_count": rpc_info.get("count", 1),
+                        "url": request.url,
+                        "status_code": response.status_code if response else None,
+                        "response_time": response.response_time_ms if response else None
+                    })
+            
+            return {"rpc_calls": rpc_calls}
     
     async def handle_websocket_message(self, websocket: WebSocket, data: Dict):
         msg_type = data.get("type")
@@ -136,7 +161,7 @@ class DashboardServer:
     
     def _request_to_dict(self, request: CapturedRequest) -> Dict:
         response = self.storage.get_response_for_request(request.id)
-        return {
+        result = {
             "id": request.id,
             "timestamp": request.timestamp.isoformat(),
             "method": request.method.value,
@@ -146,6 +171,18 @@ class DashboardServer:
             "status_code": response.status_code if response else None,
             "response_time": response.response_time_ms if response else None
         }
+        
+        # Add RPC metadata if present
+        if request.metadata and "rpc" in request.metadata:
+            rpc_info = request.metadata["rpc"]
+            result["is_rpc"] = True
+            result["rpc_type"] = rpc_info.get("type", "unknown")
+            result["rpc_method"] = rpc_info.get("method") or rpc_info.get("methods", ["unknown"])[0] if rpc_info.get("batch") else "unknown"
+            result["rpc_batch"] = rpc_info.get("batch", False)
+        else:
+            result["is_rpc"] = False
+            
+        return result
     
     def get_dashboard_html(self) -> str:
         # Load the external template

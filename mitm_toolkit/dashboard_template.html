@@ -109,6 +109,20 @@
         .method.DELETE { background: #f44336; color: white; }
         .method.PATCH { background: #9C27B0; color: white; }
         
+        .rpc-badge {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-left: 4px;
+            text-transform: uppercase;
+        }
+        .rpc-badge.json-rpc { background: #00796B; color: white; }
+        .rpc-badge.grpc { background: #1976D2; color: white; }
+        .rpc-badge.soap { background: #5E35B1; color: white; }
+        .rpc-badge.xml-rpc { background: #E65100; color: white; }
+        .rpc-request { border-left: 3px solid #00796B; }
+        
         .path { 
             flex: 1; 
             font-family: monospace; 
@@ -392,11 +406,22 @@
             const time = req.response_time ? `${req.response_time.toFixed(0)}ms` : '-';
             const timestamp = new Date(req.timestamp).toLocaleTimeString();
             
+            // RPC badge
+            const rpcBadge = req.is_rpc ? `
+                <span class="rpc-badge ${req.rpc_type}">
+                    ${req.rpc_type ? req.rpc_type.toUpperCase() : 'RPC'}${req.rpc_batch ? ' (batch)' : ''}
+                </span>
+            ` : '';
+            
+            // Method display - for RPC show the RPC method
+            const methodDisplay = req.is_rpc && req.rpc_method ? req.rpc_method : req.path;
+            
             return `
-                <div class="request-item" data-id="${req.id}">
+                <div class="request-item ${req.is_rpc ? 'rpc-request' : ''}" data-id="${req.id}">
                     <div class="request-header">
                         <span class="method ${req.method}">${req.method}</span>
-                        <span class="path">${req.path}</span>
+                        ${rpcBadge}
+                        <span class="path">${methodDisplay}</span>
                         ${req.status_code ? `<span class="status ${statusClass}">${req.status_code}</span>` : ''}
                     </div>
                     <div class="request-meta">

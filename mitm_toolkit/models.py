@@ -47,6 +47,7 @@ class CapturedRequest(BaseModel):
     host: str
     port: int
     scheme: str
+    metadata: Optional[Dict[str, Any]] = None  # For RPC and other metadata
 
 
 class CapturedResponse(BaseModel):

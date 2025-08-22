@@ -19,6 +19,7 @@ from .graphql_analyzer import GraphQLAnalyzer
 from .ai_analyzer import OllamaAnalyzer
 from .session_manager import SessionManager
 from .plugins import PluginManager
+from .rpc_analyzer import RPCAnalyzer
 
 console = Console()
 
@@ -444,6 +445,78 @@ def list_plugins():
         )
     
     console.print(table)
+
+
+@main.command()
+@click.argument("host")
+def analyze_rpc(host):
+    """Analyze RPC traffic for a host."""
+    storage = StorageBackend()
+    analyzer = RPCAnalyzer(storage)
+    
+    with console.status(f"Analyzing RPC traffic for {host}..."):
+        analysis = analyzer.analyze_rpc_traffic(host)
+    
+    if analysis["total_rpc_calls"] == 0:
+        console.print(f"[yellow]No RPC calls found for {host}[/yellow]")
+        return
+    
+    console.print(f"[green]RPC Analysis for {host}[/green]")
+    console.print(f"Total RPC Calls: {analysis['total_rpc_calls']}")
+    console.print(f"RPC Types: {', '.join(t.value for t in analysis['rpc_types'])}")
+    
+    for endpoint in analysis["endpoints"]:
+        console.print(f"\n[cyan]Endpoint: {endpoint['url']}[/cyan]")
+        console.print(f"Type: {endpoint['type']}")
+        
+        table = Table(title="RPC Methods")
+        table.add_column("Method", style="green")
+        table.add_column("Calls", style="yellow")
+        table.add_column("Params", style="cyan")
+        
+        for method in endpoint["methods"]:
+            params = ", ".join(method["param_types"].keys())[:50]
+            table.add_row(
+                method["name"],
+                str(method["call_count"]),
+                params or "-"
+            )
+        
+        console.print(table)
+        
+        # Show examples
+        if endpoint["methods"] and endpoint["methods"][0]["examples"]:
+            console.print("\n[yellow]Example calls:[/yellow]")
+            for example in endpoint["methods"][0]["examples"][:2]:
+                console.print(f"  ID: {example['request_id'][:8]}")
+                if example.get("params"):
+                    console.print(f"  Params: {str(example['params'])[:100]}")
+                if example.get("response_time"):
+                    console.print(f"  Response Time: {example['response_time']:.1f}ms")
+
+
+@main.command()
+@click.argument("host")
+@click.option("--output", "-o", required=True, help="Output file for RPC schema")
+def export_rpc_schema(host, output):
+    """Export RPC schema documentation from captured traffic."""
+    storage = StorageBackend()
+    analyzer = RPCAnalyzer(storage)
+    
+    with console.status(f"Generating RPC schema for {host}..."):
+        schema = analyzer.generate_rpc_schema(host)
+    
+    import json
+    from pathlib import Path
+    
+    output_path = Path(output)
+    output_path.write_text(json.dumps(schema, indent=2))
+    
+    console.print(f"[green]RPC schema exported to {output}[/green]")
+    console.print(f"Services: {len(schema.get('services', {}))}")
+    
+    for service_name, service in schema.get("services", {}).items():
+        console.print(f"  - {service_name}: {len(service.get('methods', {}))} methods")
 
 
 @main.command()
